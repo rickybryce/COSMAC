@@ -1,0 +1,171 @@
+   7200                 LCD_CWR:	EQU	7200H
+   7201                 LCD_DWR:	EQU	7201H
+   7202                 LCD_CRD:	EQU	7202h
+   7203                 LCD_DRD:	EQU	7203H
+                                                
+   0000                 R0	EQU	0
+   0001                 R1	EQU	1
+   0002                 R2	EQU	2
+   0003                 R3	EQU	3
+   0004                 R4	EQU	4
+   0005                 R5	EQU	5
+   0006                 R6	EQU	6
+   0007                 R7	EQU	7
+   0008                 R8	EQU	8
+   0009                 R9	EQU	9
+   000a                 RA	EQU	10
+   000b                 RB	EQU	11
+   000c                 RC	EQU	12
+   000d                 RD	EQU	13
+   000e                 RE	EQU	14
+   000f                 RF	EQU	15
+                        
+   8000                         org	8000H
+                                ; initialize registers
+                                
+   8000   f8 00                 LDI	00H
+   8002   5b                    STR	RB 
+   8003   f8 70                 LDI	70H
+   8005   ba                    PHI	RA
+   8006   f8 00                 LDI	00H
+   8008   aa                    PLO	RA
+   8009   bb                    PHI RB
+   800a   ab                    PLO RB
+   800b   b7                    PHI	R7
+   800c   a7                    PLO	R7
+   800d   b8                    PHI	R8
+   800e   a8                    PLO	R8
+   800f   b9                    PHI	R9
+   8010   a9                    PLO	R9
+   8011   5a                    STR RA
+   8012   30 1c                 BR  MAIN
+                                
+                                
+                                  ;LCD DRIVERS
+   8014   d0            RET_LCD1:	SEP	R0
+   8015   05            LCD_READY:	LDN	R5
+   8016   fa 80                     ANI	80H
+   8018   3a 15                     BNZ LCD_READY
+   801a   30 14                     BR	RET_LCD1
+                                
+                                ;  INITIALIZE LCD REGISTERS
+   801c   f8 72 b4 f8   MAIN:       LOAD	R4, LCD_CWR      
+   8020   00 a4         
+   8022   f8 72 b5 f8               LOAD	R5, LCD_CRD
+   8026   02 a5         
+                        
+   8028   f8 72 b6 f8               LOAD    R6, LCD_DWR    
+   802c   01 a6         
+   802e   f8 80 b3 f8               LOAD	R3, LCD_READY
+   8032   15 a3         
+                                
+   8034   d3                        SEP	R3
+   8035   f8 01                     LDI	01H
+   8037   54                        STR	R4
+   8038   d3                        SEP	R3
+                                    
+                                    ; WRITE TO THE DISPLAY
+   8039   99                    GHI	R9
+   803a   fc 30                 ADI 30H
+   803c   56                    STR	R6
+   803d   d3                    SEP	R3
+   803e   89                    GLO	R9
+   803f   fc 30                 ADI 30H
+   8041   56                    STR	R6
+   8042   d3                    SEP	R3
+   8043   98                    GHI	R8
+   8044   fc 30                 ADI 30H
+   8046   56                    STR	R6
+   8047   d3                    SEP	R3
+   8048   88                    GLO	R8
+   8049   fc 30                 ADI 30H
+   804b   56                    STR	R6
+   804c   d3                    SEP	R3
+   804d   30 4f                 BR  TIMER
+                                
+                                
+                                    ; SET UP DELAYS
+                                                            ;R8 is two LSDS
+                                                ;R9 is two MSDS
+                                                ;RA is for the GPIO
+                                                ;RB is the counter
+                                                ;RC is loop 0
+                                                ;RD is loop 1
+                                                ;RE is loop 2
+                                                ;RF is loop 3 fine tune
+   804f   d0            TIMER:		SEP	R0
+   8050   f8 10         INIT0:		LDI	010H
+   8052   ac            DLY0:		PLO	RC
+   8053   f8 10         INIT1:		LDI	010H
+   8055   ad            DLY1:		PLO	RD
+   8056   f8 de         INIT2:		LDI	0DEH
+   8058   ae            DLY2:		PLO	RE
+   8059   2e                        DEC	RE
+   805a   8e                        GLO	RE
+   805b   3a 58                     BNZ	DLY2
+   805d   2d                        DEC	RD
+   805e   8d                        GLO	RD
+   805f   3a 55                     BNZ	DLY1
+   8061   2c                        DEC	RC
+   8062   8c                        GLO	RC
+   8063   3a 52                     BNZ	DLY0
+   8065   f8 f0         INIT3:	    LDI	0F0H
+   8067   af            DLY3:	    PLO	RF
+   8068   2f                        DEC	RF
+   8069   8f                        GLO	RF
+   806a   c4                        NOP
+   806b   3a 67                     BNZ	DLY3
+                                    
+   806d   8b                        GLO	RB
+   806e   fc 01                     ADI	01H
+   8070   ab                        PLO	RB
+   8071   5a                        STR	RA
+   8072   88            ONES:		GLO	R8
+   8073   fc 01                     ADI	01H
+   8075   a8                        PLO	R8
+   8076   88                        GLO	R8
+   8077   fb 0a                     XRI	0AH
+   8079   3a 1c                     BNZ	MAIN
+   807b   30 7d                     BR	TENS
+   807d   f8 00         TENS:		LDI	00H
+   807f   a8                        PLO	R8
+   8080   98                        GHI R8
+   8081   fc 01                     ADI	01H
+   8083   b8                        PHI	R8
+   8084   98                        GHI	R8
+   8085   fb 0a                     XRI	0AH
+   8087   3a 1c                     BNZ	MAIN
+   8089   30 8b                     BR	HUNDREDS
+   808b   f8 00         HUNDREDS:	LDI	00H
+   808d   b8                        PHI	R8
+   808e   89                        GLO	R9
+   808f   fc 01                     ADI	01H
+   8091   a9                        PLO	R9
+   8092   89                        GLO	R9
+   8093   fb 0a                     XRI	0AH
+   8095   3a 1c                     BNZ	MAIN
+   8097   30 99                     BR  THOUSANDS
+   8099   f8 00         THOUSANDS:	LDI	00H
+   809b   a9                        PLO	R9
+   809c   99                        GHI	R9
+   809d   fc 01                     ADI	01H
+   809f   b9                        PHI	R9
+   80a0   99                        GHI	R9
+   80a1   fb 0a                     XRI	0AH
+   80a3   3a 1c                     BNZ	MAIN
+   80a5   30 a7                     BR	ZERO
+   80a7   f8 00         ZERO:		LDI	00H
+   80a9   a9                        PLO	R9
+   80aa   30 1c                     BR	MAIN
+   80ac                             END
+8052  DLY0          8055  DLY1          8058  DLY2          8067  DLY3      
+808b  HUNDREDS      8050  INIT0         8053  INIT1         8056  INIT2     
+8065  INIT3         7202  LCD_CRD       7200  LCD_CWR       7203  LCD_DRD   
+7201  LCD_DWR       8015  LCD_READY     801c  MAIN          8072  ONES      
+0000  R0            0001  R1            0002  R2            0003  R3        
+0004  R4            0005  R5            0006  R6            0007  R7        
+0008  R8            0009  R9            000a  RA            000b  RB        
+000c  RC            000d  RD            000e  RE            8014  RET_LCD1  
+000f  RF            807d  TENS          8099  THOUSANDS     804f  TIMER     
+80a7  ZERO          
+
