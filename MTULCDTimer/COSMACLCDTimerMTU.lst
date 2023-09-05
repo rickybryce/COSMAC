@@ -1,91 +1,141 @@
-   7200                 LCD_CWR:	EQU	7200H
-   7201                 LCD_DWR:	EQU	7201H
-   7202                 LCD_CRD:	EQU	7202h
-   7203                 LCD_DRD:	EQU	7203H
-                                                
-   0000                 R0	EQU	0
-   0001                 R1	EQU	1
-   0002                 R2	EQU	2
-   0003                 R3	EQU	3
-   0004                 R4	EQU	4
-   0005                 R5	EQU	5
-   0006                 R6	EQU	6
-   0007                 R7	EQU	7
-   0008                 R8	EQU	8
-   0009                 R9	EQU	9
-   000a                 RA	EQU	10
-   000b                 RB	EQU	11
-   000c                 RC	EQU	12
-   000d                 RD	EQU	13
-   000e                 RE	EQU	14
-   000f                 RF	EQU	15
+                        ; LCD Timer for COSMAC 1802 
+                        ; Microprocessor Training Unit
+                        ; No user input in this program.
+                        ; It will run as soon as you hit GO
+                        ; Time will also appear on the LEDs
                         
-   8000                         org	8000H
+                        ; Used with a18 assembler.
+                        ; William Coley A18 cross-assembler
+                        
+                        ; TO ASSEMBLE, I CREATED A SCRIPT CALLED ASM18
+                        ; #!/bin/bash
+                        ; ./a18 $1.asm -l $1.lst -o $1.hex
+                        ; then run; ./asm18 CosmacTimerMTU
+                        ; EF1 Starts and Stops the Timer
+                        ; EF2 Resets the Timer
+                        ; Don't forget to add character and line delays.
+                        
+                        ; RICKY BRYCE
+                        
+   7000                 GPIO:       EQU 7000H  ; LEDS
+   7200                 LCD_CWR:	EQU	7200H  ; CONTROL WRITE
+   7201                 LCD_DWR:	EQU	7201H  ; DATA WRITE
+   7202                 LCD_CRD:	EQU	7202H  ; CONTROL READ
+   7203                 LCD_DRD:	EQU	7203H  ; DATA READ
+   00a0                 TUNE0:      EQU 0A0H   ; TUNE LOOP 0 TIME +1
+   0010                 TUNE1:      EQU 10H    ; TUNE LOOP 1 TIME +1
+   0008                 TUNE2:      EQU 08H    ; TUNE LOOP 2 TIME +1
+   0001                 TUNEF1:     EQU 01H    ; TUNE FINE LOOP TIME +1 ; 20 300S 1 SLOW
+   0001                 TUNEF2:     EQU 01H    ; TUNE FINE LOOP TIME +1
+   0010                 TUNEF3:     EQU 10H    ; TUNE FINEST LOOP TIME +1 ; 40 300S 1 SLOW
+                        
+                        ; MAP REGISTERS
+   0000                 R0	EQU	0 ; MAIN PROGRAM COUNTER
+   0001                 R1	EQU	1 ; INTERRUPT VECTOR
+   0002                 R2	EQU	2 ; NORMALLY, STACK POINTER, BUT HERE, WILL BE MODE
+   0003                 R3	EQU	3 ; SUBROUTINE PROGRAM COUNTER WAIT FOR LCD READY
+   0004                 R4	EQU	4 ; CONTROL WRITE - LCD
+   0005                 R5	EQU	5 ; CONTROL READ - LCD
+   0006                 R6	EQU	6 ; DATA WRITE - LCD
+   0007                 R7	EQU	7 ; DATA READ - LCD
+   0008                 R8	EQU	8 ; LOW FOR ONES, HIGH FOR TENS
+   0009                 R9	EQU	9 ; LOW FOR HUNDREDS; HIGH FOR THOUSANDS
+   000a                 RA	EQU	10 ; GPIO
+   000b                 RB	EQU	11 ; COUNTER
+   000c                 RC	EQU	12 ; DELAY LOOP 0
+   000d                 RD	EQU	13 ; DELAY LOOP 1
+   000e                 RE	EQU	14 ; DELAY LOOP 2
+   000f                 RF	EQU	15 ; FINE DELAY LOOP
+                        
+   8000                         org	8000H ; COSMAC MTU STARTS AT 8000H
                                 ; initialize registers
                                 
-   8000   f8 00                 LDI	00H
-   8002   5b                    STR	RB 
-   8003   f8 70                 LDI	70H
-   8005   ba                    PHI	RA
-   8006   f8 00                 LDI	00H
-   8008   aa                    PLO	RA
-   8009   bb                    PHI RB
-   800a   ab                    PLO RB
-   800b   b7                    PHI	R7
-   800c   a7                    PLO	R7
-   800d   b8                    PHI	R8
-   800e   a8                    PLO	R8
-   800f   b9                    PHI	R9
-   8010   a9                    PLO	R9
-   8011   5a                    STR RA
-   8012   30 1c                 BR  MAIN
+                                ; REMOVE VVV
+                                ;LDI	00H ; LOAD ACCUMULATOR WITH ZERO
+                                ;STR	RB  ; INITIALIZE COUNTER
+                                ;LDI	70H ; LOAD D WITH 70H
+                                ;PHI	RA  ; 
+                                ; REMOVE AAA
+   8000                 INIT:      
+   8000   f8 70 ba f8           LOAD  RA, GPIO      ; LEDS
+   8004   00 aa         
+   8006   f8 72 b4 f8           LOAD  R4, LCD_CWR   ; CONTROL WRITE   
+   800a   00 a4         
+   800c   f8 72 b5 f8           LOAD  R5, LCD_CRD   ; CONTROL READ
+   8010   02 a5         
+   8012   f8 72 b6 f8           LOAD  R6, LCD_DWR   ; DATA WRITE 
+   8016   01 a6         
+   8018   f8 72 b7 f8           LOAD  R7, LCD_DRD   ; DATA READ
+   801c   03 a7         
+   801e   f8 80 b3 f8           LOAD  R3, LCD_READY ; LCD READY FOR NEW DATA
+   8022   3c a3         
+                                
+   8024   f8 00                 LDI	00H ; LOAD 0 FROM ACCUMULATOR
+   8026   bb                    PHI RB  ; CLEAR COUNTER HIGH
+   8027   ab                    PLO RB  ; CLEAR COUNTER LOW
+   8028   bc                    PHI RC  ; CLEAR DELAY HIGH
+   8029   ac                    PLO RC  ; CLEAR DELAY LOW
+   802a   bd                    PHI RD  ; CLEAR DELAY HIGH
+   802b   ad                    PLO RD  ; CLEAR DELAY LOW
+   802c   be                    PHI RE  ; CLEAR DELAY HIGH
+   802d   ae                    PLO RE  ; CLEAR DELAY LOW
+   802e   bf                    PHI RF  ; CLEAR DELAY HIGH
+   802f   af                    PLO RF  ; CLEAR DELAY LOW
+   8030   b7                    PHI	R7  ; CLEAR DATA READ
+   8031   a7                    PLO	R7  ; CLEAR DATA READ
+   8032   b8                    PHI	R8  ; CLEAR TENS
+   8033   a8                    PLO	R8  ; CLEAR ONES
+   8034   b9                    PHI	R9  ; CLEAR THOUSANDS
+   8035   a9                    PLO	R9  ; CLEAR HUNDREDS
+   8036   5a                    STR RA  ; CLEAR GPIO
+   8037   b2                    PHI R2  ; CLEAR ONESHOT
+   8038   a2                    PLO R2  ; SET MODE TO STOP
+                        
+   8039   30 43                 BR  MAIN
                                 
                                 
                                   ;LCD DRIVERS
-   8014   d0            RET_LCD1:	SEP	R0
-   8015   05            LCD_READY:	LDN	R5
-   8016   fa 80                     ANI	80H
-   8018   3a 15                     BNZ LCD_READY
-   801a   30 14                     BR	RET_LCD1
+   803b                 RET_LCD1:	
+   803b   d0                    SEP	R0 ; SET THE PROGRAM COUNTER TO MAIN (EXIT SUBROUTINE)
+                                    ; SUBROUTINE IS BELOW, AND EXECUTED BY A CHANGE OF PC TO R3
+                                    ; WE JUMP INTO LCD_READY
+   803c                 LCD_READY:	
+   803c   05                    LDN	R5 ; LOAD REGISTER R5
+   803d   fa 80                 ANI	80H ; SEE IF BIT 7 IS HIGH
+   803f   3a 3c                 BNZ LCD_READY ; IF SO, STAY HERE
+   8041   30 3b                 BR	RET_LCD1  ; SET PROGRAM COUNTER BACK TO ZERO
                                 
-                                ;  INITIALIZE LCD REGISTERS
-   801c   f8 72 b4 f8   MAIN:       LOAD	R4, LCD_CWR      
-   8020   00 a4         
-   8022   f8 72 b5 f8               LOAD	R5, LCD_CRD
-   8026   02 a5         
-                        
-   8028   f8 72 b6 f8               LOAD    R6, LCD_DWR    
-   802c   01 a6         
-   802e   f8 80 b3 f8               LOAD	R3, LCD_READY
-   8032   15 a3         
-                                
-   8034   d3                        SEP	R3
-   8035   f8 01                     LDI	01H
-   8037   54                        STR	R4
-   8038   d3                        SEP	R3
+   8043                 MAIN:       
+   8043   d3                    SEP	R3  ; CHECK TO SEE IF THE LCD IS READY
+   8044   f8 01                 LDI	01H ; LOAD 1 TO D
+   8046   54                    STR	R4  ; ENABLE LCD
+   8047   d3                    SEP	R3  ; WAIT FOR LCD TO BECOME READY
                                     
                                     ; WRITE TO THE DISPLAY
-   8039   99                    GHI	R9
-   803a   fc 30                 ADI 30H
-   803c   56                    STR	R6
-   803d   d3                    SEP	R3
-   803e   89                    GLO	R9
-   803f   fc 30                 ADI 30H
-   8041   56                    STR	R6
-   8042   d3                    SEP	R3
-   8043   98                    GHI	R8
-   8044   fc 30                 ADI 30H
-   8046   56                    STR	R6
-   8047   d3                    SEP	R3
-   8048   88                    GLO	R8
-   8049   fc 30                 ADI 30H
-   804b   56                    STR	R6
-   804c   d3                    SEP	R3
-   804d   30 4f                 BR  TIMER
+   8048   99                    GHI	R9    ; GET THOUSANDS
+   8049   fc 30                 ADI 30H   ; ADD 30 TO CONVERT TO ASCII
+   804b   56                    STR	R6    ; THEN STORE THIS TO R6
+   804c   d3                    SEP	R3    ; WAIT FOR LCD TO BECOME READY
+   804d   89                    GLO	R9    ; GET HUNDREDS
+   804e   fc 30                 ADI 30H   ; ADD 30 TO CONVERT TO ASCII
+   8050   56                    STR	R6    ; STORE THIS TO R6
+   8051   d3                    SEP	R3    ; WAIT FOR LCD
+   8052   98                    GHI	R8    ; GET TENS
+   8053   fc 30                 ADI 30H   ; CONVERT TO ASCII
+   8055   56                    STR	R6    ; SEND TO DISPLAY
+   8056   d3                    SEP	R3    ; WAIT FOR LCD
+   8057   88                    GLO	R8    ; GET THE ONES
+   8058   fc 30                 ADI 30H   ; CONVERT TO ASCII
+   805a   56                    STR	R6    ; SEND TO DISPLAY
+   805b   d3                    SEP	R3    ; WAIT FOR LCD READY
+   805c   82                    GLO R2    ; GET THE MODE
+   805d   3a 61                 BNZ  TIMER ; GO TO TIMER LOGIC
+   805f                 WAITEF1:
+   805f   3c 5f                 BN1 WAITEF1 ; HOLD UNTIL READY AFTER RESET
                                 
                                 
                                     ; SET UP DELAYS
-                                                            ;R8 is two LSDS
+                                                ;R8 is two LSDS
                                                 ;R9 is two MSDS
                                                 ;RA is for the GPIO
                                                 ;RB is the counter
@@ -93,79 +143,163 @@
                                                 ;RD is loop 1
                                                 ;RE is loop 2
                                                 ;RF is loop 3 fine tune
-   804f   d0            TIMER:		SEP	R0
-   8050   f8 10         INIT0:		LDI	010H
-   8052   ac            DLY0:		PLO	RC
-   8053   f8 10         INIT1:		LDI	010H
-   8055   ad            DLY1:		PLO	RD
-   8056   f8 de         INIT2:		LDI	0DEH
-   8058   ae            DLY2:		PLO	RE
-   8059   2e                        DEC	RE
-   805a   8e                        GLO	RE
-   805b   3a 58                     BNZ	DLY2
-   805d   2d                        DEC	RD
-   805e   8d                        GLO	RD
-   805f   3a 55                     BNZ	DLY1
-   8061   2c                        DEC	RC
-   8062   8c                        GLO	RC
-   8063   3a 52                     BNZ	DLY0
-   8065   f8 f0         INIT3:	    LDI	0F0H
-   8067   af            DLY3:	    PLO	RF
-   8068   2f                        DEC	RF
-   8069   8f                        GLO	RF
-   806a   c4                        NOP
-   806b   3a 67                     BNZ	DLY3
+   8061                 TIMER:		;SEP	R0      ; PROGRAM COUNTER REGISTER BECOMES 0
+   8061   f8 a0         INIT0:		LDI	TUNE0    ; LOAD ACCUMULATOR WITH 10H FOR CALIBRATION
+   8063   ac                        PLO	RC      ; LOAD RC WITH VALUE OF TUNE0
+   8064   2c            DLY0:       DEC RC
+   8065   f8 10         INIT1:		LDI	TUNE1    ; RELOAD ACCUMULATOR WITH 10H (MORE CALIBRATION)
+   8067   ad                        PLO	RD      ; LOAD RD WITH 10H
+   8068   2d            DLY1:       DEC RD
+   8069   f8 08         INIT2:		LDI	TUNE2    ; LOAD ACCUMULATOR WITH 1E ; WAS DEH
+   806b   ae                        PLO	RE      ; PLACE THIS INTO RE
+   806c   c4                        NOP
+   806d   c4                        NOP
+   806e   c4                        NOP
+   806f   2e            DLY2:       DEC	RE      ; THEN DECREMENT RE
+   8070   30 e3                     BR CHKEF    ; CHECK EF1 AND EF2 INPUTS (BOTTOM OF FILE)
+   8072                 CONTDLY:    ; CONTINUE WITH DELAY
                                     
-   806d   8b                        GLO	RB
-   806e   fc 01                     ADI	01H
-   8070   ab                        PLO	RB
-   8071   5a                        STR	RA
-   8072   88            ONES:		GLO	R8
-   8073   fc 01                     ADI	01H
-   8075   a8                        PLO	R8
-   8076   88                        GLO	R8
-   8077   fb 0a                     XRI	0AH
-   8079   3a 1c                     BNZ	MAIN
-   807b   30 7d                     BR	TENS
-   807d   f8 00         TENS:		LDI	00H
-   807f   a8                        PLO	R8
-   8080   98                        GHI R8
-   8081   fc 01                     ADI	01H
-   8083   b8                        PHI	R8
-   8084   98                        GHI	R8
-   8085   fb 0a                     XRI	0AH
-   8087   3a 1c                     BNZ	MAIN
-   8089   30 8b                     BR	HUNDREDS
-   808b   f8 00         HUNDREDS:	LDI	00H
-   808d   b8                        PHI	R8
-   808e   89                        GLO	R9
-   808f   fc 01                     ADI	01H
-   8091   a9                        PLO	R9
-   8092   89                        GLO	R9
-   8093   fb 0a                     XRI	0AH
-   8095   3a 1c                     BNZ	MAIN
-   8097   30 99                     BR  THOUSANDS
-   8099   f8 00         THOUSANDS:	LDI	00H
-   809b   a9                        PLO	R9
-   809c   99                        GHI	R9
-   809d   fc 01                     ADI	01H
-   809f   b9                        PHI	R9
-   80a0   99                        GHI	R9
-   80a1   fb 0a                     XRI	0AH
-   80a3   3a 1c                     BNZ	MAIN
-   80a5   30 a7                     BR	ZERO
-   80a7   f8 00         ZERO:		LDI	00H
-   80a9   a9                        PLO	R9
-   80aa   30 1c                     BR	MAIN
-   80ac                             END
-8052  DLY0          8055  DLY1          8058  DLY2          8067  DLY3      
-808b  HUNDREDS      8050  INIT0         8053  INIT1         8056  INIT2     
-8065  INIT3         7202  LCD_CRD       7200  LCD_CWR       7203  LCD_DRD   
-7201  LCD_DWR       8015  LCD_READY     801c  MAIN          8072  ONES      
-0000  R0            0001  R1            0002  R2            0003  R3        
-0004  R4            0005  R5            0006  R6            0007  R7        
-0008  R8            0009  R9            000a  RA            000b  RB        
-000c  RC            000d  RD            000e  RE            8014  RET_LCD1  
-000f  RF            807d  TENS          8099  THOUSANDS     804f  TIMER     
-80a7  ZERO          
+   8072   8e                        GLO	RE      ; GET THE LOW BYTE OF RE
+   8073   3a 6f                     BNZ	DLY2    ; BRANCH BACK TO DLY2 IF NOT ZERO
+   8075   8d                        GLO	RD      ; THEN GET THE LOW BYTE OF RD
+   8076   3a 68                     BNZ	DLY1    ; IF NOT ZERO, THEN GO TO INIT2
+   8078   8c                        GLO	RC      ; GET THE LOW BYTE OF RC
+   8079   3a 64                     BNZ	DLY0    ; IF NOT YET ZERO, THEN RE-RUN DLY1
+                                    
+                                    ; FINE TUNE
+   807b   f8 01         INIT3:	    LDI	TUNEF1    ; LOAD ACCUMULATOR WITH 10H ; WAS F0H
+   807d   af                        PLO	RF      ; PLACE THIS INTO THE LOW BYTE OF RF
+   807e   2f            DLY3:       DEC	RF      ; THEN DECREMENT RF
+   807f   f8 01         INIT4:	    LDI	TUNEF2    ; LOAD ACCUMULATOR WITH 10H ; WAS F0H
+   8081   ae                        PLO	RE      ; PLACE THIS INTO THE LOW BYTE OF RF
+   8082   2e            DLY4:       DEC	RE      ; THEN DECREMENT RF
+   8083   8e                        GLO	RE      ; SEE WHAT THE LOW BYTE OF RF IS
+   8084   c4                        NOP
+                                    
+   8085   3a 82                     BNZ	DLY4    ; IF NOT ZERO, RE-RUN DLY3
+   8087   8f                        GLO	RF      ; SEE WHAT THE LOW BYTE OF RF IS
+   8088   c4                        NOP         ; NOP FOR CALIBRATION
+   8089   c4                        NOP
+   808a   c4                        NOP
+   808b   c4                        NOP
+   808c   3a 7e                     BNZ	DLY3    ; IF NOT ZERO, RE-RUN DLY3
+                                    
+                        
+                                    
+                                    ; FINEST TUNE
+   808e   f8 10         INIT5:	    LDI	TUNEF3    ; LOAD ACCUMULATOR WITH 10H ; WAS F0H
+   8090   af                        PLO	RF      ; PLACE THIS INTO THE LOW BYTE OF RF
+   8091   2f            DLY5:       DEC	RF      ; THEN DECREMENT RF
+   8092   8f                        GLO	RF      ; SEE WHAT THE LOW BYTE OF RF IS
+                                    ;NOP         ; NOP FOR CALIBRATION
+                                    ;NOP
+   8093   3a 91                     BNZ	DLY5    ; IF NOT ZERO, RE-RUN DLY3
+                                    
+                        
+                                    
+   8095   8b                        GLO	RB      ; COUNTER
+   8096   fc 01                     ADI	01H     ; ADD 1 TO COUNTER
+   8098   ab                        PLO	RB      ; STORE BACK TO COUNTER
+   8099   5a                        STR	RA      ; STORE TO GPIO
+   809a   88            ONES:		GLO	R8   ; GET THE LOW VALUE OF R8 (ONES)
+   809b   fc 01                     ADI	01H  ; INCREMENT THE ONES
+   809d   a8                        PLO	R8   ; STORE IT BACK TO R8
+   809e   88                        GLO	R8   ; GET THE LOW VALUE AGAIN
+   809f   fb 0a                     XRI	0AH  ; CHECK FOR AH
+   80a1   3a 43                     BNZ	MAIN ; IF IT HASN'T REACHED 0AH, WE CAN CONTINUE
+   80a3   30 a5                     BR	TENS ; OTHERWISE, IT'S TIME TO EXECUTE THE TENS LOGIC
+   80a5   f8 00         TENS:		LDI	00H  ; LOAD 0 TO ACCUMULATOR
+   80a7   a8                        PLO	R8   ; ZERO THE ONES
+   80a8   98                        GHI R8   ; GET THE TENS
+   80a9   fc 01                     ADI	01H  ; ADD ONE
+   80ab   b8                        PHI	R8   ; PUT THE NEW VALUE BACK TO R8 (HIGH)
+   80ac   98                        GHI	R8   ; GET THE HIGH VALUE OF R8 (TENS)
+   80ad   fb 0a                     XRI	0AH  ; CHECK FOR AH
+   80af   3a 43                     BNZ	MAIN ; IF NOT ZERO, THEN WE CAN CONTINUE
+   80b1   30 b3                     BR	HUNDREDS ; IF IT'S 0AH, THEN WE NEED TO WORK WITH HUNDREDS
+   80b3   f8 00         HUNDREDS:	LDI	00H  ; LOAD 0 TO ACCUMULATOR
+   80b5   b8                        PHI	R8   ; PLACE THIS INTO R8 HIGH (TENS)
+   80b6   89                        GLO	R9   ; GET THE LOW VALUE OF R9 (HUNDREDS)
+   80b7   fc 01                     ADI	01H  ; ADD 1
+   80b9   a9                        PLO	R9   ; STORE THIS TO R9 LOW (HUNDREDS)
+   80ba   89                        GLO	R9   ; GET THE LOW VALUE OF R9 (HUNDREDS)
+   80bb   fb 0a                     XRI	0AH  ; CHECK FOR AH
+   80bd   3a 43                     BNZ	MAIN ; IF NOT ZERO, THEN CONTINUE
+   80bf   30 c1                     BR  THOUSANDS ; OTHERWISE WORK WITH THOUSANDS
+   80c1   f8 00         THOUSANDS:	LDI	00H  ; LOAD 0 TO ACCUMULATOR
+   80c3   a9                        PLO	R9   ; PLACE THIS INTO R9 LOW (HUNDREDS)
+   80c4   99                        GHI	R9   ; GET THE VALUE OF R9 HIGH (THOUSANDS)
+   80c5   fc 01                     ADI	01H  ; ADD 1
+   80c7   b9                        PHI	R9   ; PUT THIS BACK TO R9 HIGH
+   80c8   99                        GHI	R9   ; GET R9 HIGH
+   80c9   fb 0a                     XRI	0AH  ; CHECK FOR AH
+   80cb   3a 43                     BNZ	MAIN ; IF NOT REACHED A, CONTINUE
+   80cd   30 cf                     BR	ZERO ; OTHERWISE ZERO
+   80cf   f8 00         ZERO:		LDI	00H  ; LOAD ACCUMULATOR WITH ZERO
+   80d1   a9                        PLO	R9   ; ZERO THOUSANDS
+   80d2   30 43                     BR	MAIN ; START AGAIN
+                        
+   80d4                 MODEHLT:
+   80d4   35 00                     B2 INIT        ; INITIALIZE IF EF2 PRESSED
+   80d6   34 e9                     B1 EF1PRESSED  ; RECHECK BUTTONS
+   80d8   3c dd                     BN1 CLRHLTONS  ; CLEAR ONS IN THIS MODE
+   80da   c0 80 d4                  LBR MODEHLT     ; CONTINUE LOOP
+                        ; PAGE BOUNDARY 
+   80dd                 CLRHLTONS:  
+   80dd   f8 00                     LDI 00H        ; LOAD 00H TO ACCUMULATOR
+   80df   b2                        PHI R2         ; CLEAR ONS 
+   80e0   c0 80 d4                  LBR MODEHLT     ; CONTINUE LOOP
+                                    
+                                    ; HANDLE MODES WHILE WE ARE HERE
+                                    ; CLEAR EF1 ONE SHOT
+   80e3                 CHKEF:      ; CHECK FOR EF1
+   80e3   35 00                     B2 INIT     ; IF EF2=0, RE-INITIALIZE (ACTIVE LOW)
+   80e5   34 e9                     B1 EF1PRESSED
+   80e7   3c f1                     BN1 EF1NOTPRESSED
+   80e9                 EF1PRESSED: 
+   80e9   92                        GHI R2    ; CHECK ONESHOT
+   80ea   32 f6                     BZ CHNGMODE ; CHANGE THE MODE
+   80ec   82                        GLO R2    ; CHECK MODE
+   80ed   32 d4                     BZ MODEHLT  ; ENTER HALT MODE IF ZERO
+   80ef   30 72                     BR CONTDLY  ; IF MODE=1 AND NO ONESHOT, CONTINUE
+                                    
+   80f1                 EF1NOTPRESSED:
+   80f1   f8 00                     LDI 00H     ; LOAD 0 TO ACCUMULATOR
+   80f3   b2                        PHI R2      ; CLEAR ONE SHOT
+   80f4   30 72                     BR CONTDLY
+                                    
+   80f6                 CHNGMODE:
+                                    ; AT THIS POINT, ONS=1 AND BUTTON PRESSED.  CHANGE MODE
+   80f6   f8 01                     LDI 01H   ; SET THE ACCUMULATOR TO 1
+   80f8   b2                        PHI R2    ; TURN ON ONE SHOT.  WE KNOW IT WAS OFF.
+   80f9   82                        GLO R2    ; CHECK THE MODE
+   80fa   c2 81 00                  LBZ CHRUN  ; IF ZERO THEN CHANGE TO RUN MODE
+   80fd   ca 81 06                  LBNZ CHHLT ; IF NOT ZERO, CHANGE TO HALT MODE
+   8100                 CHRUN:
+   8100   f8 01                     LDI 01H   ; LOAD 1 TO ACCUMULATOR
+   8102   a2                        PLO R2    ; SET MODE TO RUN
+   8103   c0 80 72                  LBR CONTDLY ; CONTINUE
+   8106                 CHHLT:
+   8106   f8 00                     LDI 00H    ; LOAD 0 TO ACCUMULATOR
+   8108   a2                        PLO R2    ; SET MODE TO HALT
+   8109   c0 80 d4                  LBR MODEHLT ; ENTER HALT MODE
+                               
+                        
+                        
+   810c                             END
+8106  CHHLT         80e3  CHKEF         80f6  CHNGMODE      8100  CHRUN     
+80dd  CLRHLTONS     8072  CONTDLY       8064  DLY0          8068  DLY1      
+806f  DLY2          807e  DLY3          8082  DLY4          8091  DLY5      
+80f1  EF1NOTPRESSED    80e9  EF1PRESSED    7000  GPIO          80b3  HUNDREDS  
+8000  INIT          8061  INIT0         8065  INIT1         8069  INIT2     
+807b  INIT3         807f  INIT4         808e  INIT5         7202  LCD_CRD   
+7200  LCD_CWR       7203  LCD_DRD       7201  LCD_DWR       803c  LCD_READY 
+8043  MAIN          80d4  MODEHLT       809a  ONES          0000  R0        
+0001  R1            0002  R2            0003  R3            0004  R4        
+0005  R5            0006  R6            0007  R7            0008  R8        
+0009  R9            000a  RA            000b  RB            000c  RC        
+000d  RD            000e  RE            803b  RET_LCD1      000f  RF        
+80a5  TENS          80c1  THOUSANDS     8061  TIMER         00a0  TUNE0     
+0010  TUNE1         0008  TUNE2         0001  TUNEF1        0001  TUNEF2    
+0010  TUNEF3        805f  WAITEF1       80cf  ZERO          
 
