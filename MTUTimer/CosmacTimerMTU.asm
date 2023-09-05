@@ -23,16 +23,17 @@ HUNDREDS:   EQU 8304H
 THOUSANDS:  EQU 8305H
 FREERUN:    EQU 8306H
 EFLAGS:     EQU 8307H
+TEMP:       EQU 8308H
 BREAK:      EQU 2756H
 
 
     ORG    8000H
 R0    EQU    0  ; PROGRAM COUNTER
 R1    EQU    1
-R2    EQU    2
-R3    EQU    3
+R2    EQU    2  ; TEMP
+R3    EQU    3  ; SUBROUTINES
 R4    EQU    4  ; SEGMENT
-R5    EQU    5
+R5    EQU    5  ; DIGIT
 R6    EQU    6  ; BUFFER WORKSPACE
 R7    EQU    7  ; DELAY
 R8    EQU    8  ; LOOP COUNT FOR DIGIT SCAN
@@ -52,6 +53,7 @@ INIT:  LOAD    R3, DELAY     ; INITIALIZE REGISTERS
         STR     RF              ; CLEAR FREERUN
         LOAD    RE, GPIO1       ; RE WILL BE FORGPIO
         LDI     00H             ; RELOAD ZERO TO ACCUMULATOR
+        STR     RE              ; CLEAR GPIO1
         LOAD    RD, EFLAGS      ; RD WILL BE FOR EFLAGS
         LDI     00H             ; RELOAD ZERO TO ACCUMULATOR
         STR     RD              ; CLEAR EFLAGS
@@ -83,7 +85,7 @@ CONT2:  BNQ     CONT            ; IF Q IS NOT SET, CONTINUE
         LDI     01H             ; LOAD ACCUMULATOR WITH 1
         ADD                     ; ADD 1 TO FREERUN
         STR     RF              ; UPDATE FREERUN
-        XRI     1FH             ; CALIBRATE TIME
+        XRI     1DH             ; CALIBRATE TIME WAS 1F
         LBZ     COUNT           ; IF TIME IS REACHED, THEN COUNT
 CONT:   LOAD    RB, SCAN_DIGIT  ; OUTPUT TO TURN ON DIGITS
         LDI     6               ; WE HAVE 6 DIGITS
@@ -105,9 +107,10 @@ LOOP:   LDN     RB      ; GET DIGIT CONTROL
 
 
 RET_DELAY: SEP  R0      ; EXIT SUBROUTINE SET PC BACK TO R0
-DELAY:  LDI     1       ; LOAD 1 TO ACC
+DELAY:  LDI     01H     ; LOAD 1 TO ACC
         PLO     R7      ; PLACE 1 INTO R7
 DELAY1: DEC     R7      ; DECREMENT R7
+        NOP
         GLO     R7      ; GET R7 AGAIN
         BNZ     DELAY1  ; CONTINUE UNTIL R7=0
         BR      RET_DELAY ; EXIT SUBROUTINE
@@ -259,6 +262,19 @@ UONES:  LOAD    R9, VALUES      ; BE SURE R9 IS CODED VALUES
         LOAD    R6, BUFFER2     ; R6 BECOMES BUFFER2
         LDN     R9              ; LOAD THE BIT PATTERN FOR THE VALUE
         STR     R6              ; STORE THIS TO BUFFER2
+        
+        ; UPDATE GPIO
+        LOAD    RC,TENS
+        LDN     RC
+        SHL
+        SHL
+        SHL
+        SHL
+        STR     R2
+        LOAD    RC,ONES
+        SEX     RC
+        LDN     R2   
+        OR
         STR     RE              ; STORE THE PATTERN TO GPIO
 
 UTENS:  LOAD    R9, VALUES      ; RELOAD R9 WITH VALUES

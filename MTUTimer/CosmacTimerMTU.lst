@@ -23,16 +23,17 @@
    8305                 THOUSANDS:  EQU 8305H
    8306                 FREERUN:    EQU 8306H
    8307                 EFLAGS:     EQU 8307H
+   8308                 TEMP:       EQU 8308H
    2756                 BREAK:      EQU 2756H
                         
                         
    8000                     ORG    8000H
    0000                 R0    EQU    0  ; PROGRAM COUNTER
    0001                 R1    EQU    1
-   0002                 R2    EQU    2
-   0003                 R3    EQU    3
+   0002                 R2    EQU    2  ; TEMP
+   0003                 R3    EQU    3  ; SUBROUTINES
    0004                 R4    EQU    4  ; SEGMENT
-   0005                 R5    EQU    5
+   0005                 R5    EQU    5  ; DIGIT
    0006                 R6    EQU    6  ; BUFFER WORKSPACE
    0007                 R7    EQU    7  ; DELAY
    0008                 R8    EQU    8  ; LOOP COUNT FOR DIGIT SCAN
@@ -45,7 +46,7 @@
    000f                 RF    EQU    15 ; FREERUN
                         
    8000   f8 80 b3 f8   INIT:  LOAD    R3, DELAY     ; INITIALIZE REGISTERS
-   8004   9a a3         
+   8004   9b a3         
    8006   f8 71 b4 f8           LOAD    R4, SEGMENT     ; INDIVIDUAL SEGMENTS OF DIGIT
    800a   02 a4         
    800c   f8 71 b5 f8           LOAD    R5, DIGIT       ; TURN ON DIGIT
@@ -57,336 +58,354 @@
    801b   f8 70 be f8           LOAD    RE, GPIO1       ; RE WILL BE FORGPIO
    801f   00 ae         
    8021   f8 00                 LDI     00H             ; RELOAD ZERO TO ACCUMULATOR
-   8023   f8 83 bd f8           LOAD    RD, EFLAGS      ; RD WILL BE FOR EFLAGS
-   8027   07 ad         
-   8029   f8 00                 LDI     00H             ; RELOAD ZERO TO ACCUMULATOR
-   802b   5d                    STR     RD              ; CLEAR EFLAGS
-   802c   f8 83 bc f8           LOAD    RC, HUNDREDTHS  ; RC BECOMES HUNDREDTHS MEMORY
-   8030   00 ac         
-   8032   f8 00                 LDI     00H             ; RELOAD ZERO
-   8034   5c                    STR     RC              ; CLEAR HUNDREDTHS
-   8035   f8 83 bc f8           LOAD    RC, TENTHS      ; NOW, RC BECOMES TENTHS
-   8039   01 ac         
-   803b   f8 00                 LDI     00H             ; RELOAD ZERO
-   803d   5c                    STR     RC              ; CLEAR TENTHS
-   803e   f8 83 bc f8           LOAD    RC, ONES        ; NOW LOAD RC WITH ONES
-   8042   02 ac         
-   8044   f8 00                 LDI     00H             ; RELOAD ZERO
-   8046   5c                    STR     RC              ; CLEAR ONES
-   8047   f8 83 bc f8           LOAD    RC, TENS        ; RC BECOMES TENS
-   804b   03 ac         
-   804d   f8 00                 LDI     00H             ; RELOAD ZERO
-   804f   5c                    STR     RC              ; CLEAR TENS
-   8050   f8 83 bc f8           LOAD    RC, HUNDREDS    ; RC BECOMES HUNDREDS
-   8054   04 ac         
-   8056   f8 00                 LDI     00H             ; RELOAD ZERO
-   8058   5c                    STR     RC              ; CLEAR HUNDREDS
-   8059   f8 83 bc f8           LOAD    RC, THOUSANDS   ; FINALLY RC=THOUSANDS MEMORY
-   805d   05 ac         
-   805f   f8 00                 LDI     00H             ; RELOAD ZERO
-   8061   5c                    STR     RC              ; CLEAR THOUSANDS
-   8062   7a                    REQ                     ; SHUT OFF Q OUTPUT (RESET)
+   8023   5e                    STR     RE              ; CLEAR GPIO1
+   8024   f8 83 bd f8           LOAD    RD, EFLAGS      ; RD WILL BE FOR EFLAGS
+   8028   07 ad         
+   802a   f8 00                 LDI     00H             ; RELOAD ZERO TO ACCUMULATOR
+   802c   5d                    STR     RD              ; CLEAR EFLAGS
+   802d   f8 83 bc f8           LOAD    RC, HUNDREDTHS  ; RC BECOMES HUNDREDTHS MEMORY
+   8031   00 ac         
+   8033   f8 00                 LDI     00H             ; RELOAD ZERO
+   8035   5c                    STR     RC              ; CLEAR HUNDREDTHS
+   8036   f8 83 bc f8           LOAD    RC, TENTHS      ; NOW, RC BECOMES TENTHS
+   803a   01 ac         
+   803c   f8 00                 LDI     00H             ; RELOAD ZERO
+   803e   5c                    STR     RC              ; CLEAR TENTHS
+   803f   f8 83 bc f8           LOAD    RC, ONES        ; NOW LOAD RC WITH ONES
+   8043   02 ac         
+   8045   f8 00                 LDI     00H             ; RELOAD ZERO
+   8047   5c                    STR     RC              ; CLEAR ONES
+   8048   f8 83 bc f8           LOAD    RC, TENS        ; RC BECOMES TENS
+   804c   03 ac         
+   804e   f8 00                 LDI     00H             ; RELOAD ZERO
+   8050   5c                    STR     RC              ; CLEAR TENS
+   8051   f8 83 bc f8           LOAD    RC, HUNDREDS    ; RC BECOMES HUNDREDS
+   8055   04 ac         
+   8057   f8 00                 LDI     00H             ; RELOAD ZERO
+   8059   5c                    STR     RC              ; CLEAR HUNDREDS
+   805a   f8 83 bc f8           LOAD    RC, THOUSANDS   ; FINALLY RC=THOUSANDS MEMORY
+   805e   05 ac         
+   8060   f8 00                 LDI     00H             ; RELOAD ZERO
+   8062   5c                    STR     RC              ; CLEAR THOUSANDS
+   8063   7a                    REQ                     ; SHUT OFF Q OUTPUT (RESET)
                         
-   8063   f8 80 ba f8   MAIN:   LOAD    RA, BUFFER5     ; RA BECOMES BUFFERS MEMORY
-   8067   a3 aa         
-   8069   f8 80 b9 f8           LOAD    R9, VALUES      ; R9 BECOMES VALUES MEMORY
-   806d   af a9         
-   806f   c0 82 34              LBR     CHKEF1          ; CHECK EF BUTTONS
-   8072   39 7e         CONT2:  BNQ     CONT            ; IF Q IS NOT SET, CONTINUE
-   8074   ef                    SEX     RF              ; SET INDEX REGISTER TO FREE RUN
-   8075   f8 01                 LDI     01H             ; LOAD ACCUMULATOR WITH 1
-   8077   f4                    ADD                     ; ADD 1 TO FREERUN
-   8078   5f                    STR     RF              ; UPDATE FREERUN
-   8079   fb 1f                 XRI     1FH             ; CALIBRATE TIME
-   807b   c2 80 f7              LBZ     COUNT           ; IF TIME IS REACHED, THEN COUNT
-   807e   f8 80 bb f8   CONT:   LOAD    RB, SCAN_DIGIT  ; OUTPUT TO TURN ON DIGITS
-   8082   a9 ab         
-   8084   f8 06                 LDI     6               ; WE HAVE 6 DIGITS
-   8086   a8                    PLO     R8      ; LOOP COUNT
-   8087   0b            LOOP:   LDN     RB      ; GET DIGIT CONTROL
-   8088   fb ff                 XRI     0FFH    ; COMPLEMENT IT (ACTIVE LOW)
-   808a   55                    STR     R5      ; WRITE TO DIGIT
-   808b   0a                    LDN     RA      ; GET BYTE FROM BUFFER
-   808c   54                    STR     R4      ; WRITE TO SEGMENT
-   808d   d3                    SEP     R3      ; DELAY
-   808e   f8 00                 LDI     0       ; TURN OFF DISPLAY
-   8090   54                    STR     R4      ; ZERO SEGMENT
-   8091   1a                    INC     RA      ; INCREMENT BUFFER
-   8092   1b                    INC     RB      ; INCREMENT DIGIT
-   8093   28                    DEC     R8      ; DECREMENT LOOP COUNT
-   8094   88                    GLO     R8      ; GET THE LOOP NUMBER
-   8095   3a 87                 BNZ     LOOP    ; CONTINUE UNTIL 6 DIGITS
-   8097   30 63                 BR      MAIN    ; GO TO MAIN ROUTINE
-                        
-                        
-   8099   d0            RET_DELAY: SEP  R0      ; EXIT SUBROUTINE SET PC BACK TO R0
-   809a   f8 01         DELAY:  LDI     1       ; LOAD 1 TO ACC
-   809c   a7                    PLO     R7      ; PLACE 1 INTO R7
-   809d   27            DELAY1: DEC     R7      ; DECREMENT R7
-   809e   87                    GLO     R7      ; GET R7 AGAIN
-   809f   3a 9d                 BNZ     DELAY1  ; CONTINUE UNTIL R7=0
-   80a1   30 99                 BR      RET_DELAY ; EXIT SUBROUTINE
+   8064   f8 80 ba f8   MAIN:   LOAD    RA, BUFFER5     ; RA BECOMES BUFFERS MEMORY
+   8068   a5 aa         
+   806a   f8 80 b9 f8           LOAD    R9, VALUES      ; R9 BECOMES VALUES MEMORY
+   806e   b1 a9         
+   8070   c0 82 4b              LBR     CHKEF1          ; CHECK EF BUTTONS
+   8073   39 7f         CONT2:  BNQ     CONT            ; IF Q IS NOT SET, CONTINUE
+   8075   ef                    SEX     RF              ; SET INDEX REGISTER TO FREE RUN
+   8076   f8 01                 LDI     01H             ; LOAD ACCUMULATOR WITH 1
+   8078   f4                    ADD                     ; ADD 1 TO FREERUN
+   8079   5f                    STR     RF              ; UPDATE FREERUN
+   807a   fb 1d                 XRI     1DH             ; CALIBRATE TIME WAS 1F
+   807c   c2 80 f9              LBZ     COUNT           ; IF TIME IS REACHED, THEN COUNT
+   807f   f8 80 bb f8   CONT:   LOAD    RB, SCAN_DIGIT  ; OUTPUT TO TURN ON DIGITS
+   8083   ab ab         
+   8085   f8 06                 LDI     6               ; WE HAVE 6 DIGITS
+   8087   a8                    PLO     R8      ; LOOP COUNT
+   8088   0b            LOOP:   LDN     RB      ; GET DIGIT CONTROL
+   8089   fb ff                 XRI     0FFH    ; COMPLEMENT IT (ACTIVE LOW)
+   808b   55                    STR     R5      ; WRITE TO DIGIT
+   808c   0a                    LDN     RA      ; GET BYTE FROM BUFFER
+   808d   54                    STR     R4      ; WRITE TO SEGMENT
+   808e   d3                    SEP     R3      ; DELAY
+   808f   f8 00                 LDI     0       ; TURN OFF DISPLAY
+   8091   54                    STR     R4      ; ZERO SEGMENT
+   8092   1a                    INC     RA      ; INCREMENT BUFFER
+   8093   1b                    INC     RB      ; INCREMENT DIGIT
+   8094   28                    DEC     R8      ; DECREMENT LOOP COUNT
+   8095   88                    GLO     R8      ; GET THE LOOP NUMBER
+   8096   3a 88                 BNZ     LOOP    ; CONTINUE UNTIL 6 DIGITS
+   8098   30 64                 BR      MAIN    ; GO TO MAIN ROUTINE
                         
                         
-   80a3   bd            BUFFER5:     DB 0BDH ; ZERO THOUSANDS
-   80a4   bd            BUFFER4:     DB 0BDH ; ZERO HUNDREDS
-   80a5   bd            BUFFER3:     DB 0BDH ; ZERO TENS
-   80a6   bd            BUFFER2:     DB 0BDH ; ZERO ONES
-   80a7   bd            BUFFER1:     DB 0BDH ; ZERO TENTHS
-   80a8   bd            BUFFER0:     DB 0BDH ; ZERO HUNDREDTHS
-   80a9   20 10 08 04   SCAN_DIGIT: DB 20H, 10H, 8, 4, 2, 1 ; BIT NUMBERS TO TURN ON EACH DISPLAY
-   80ad   02 01         
+   809a   d0            RET_DELAY: SEP  R0      ; EXIT SUBROUTINE SET PC BACK TO R0
+   809b   f8 01         DELAY:  LDI     01H     ; LOAD 1 TO ACC
+   809d   a7                    PLO     R7      ; PLACE 1 INTO R7
+   809e   27            DELAY1: DEC     R7      ; DECREMENT R7
+   809f   c4                    NOP
+   80a0   87                    GLO     R7      ; GET R7 AGAIN
+   80a1   3a 9e                 BNZ     DELAY1  ; CONTINUE UNTIL R7=0
+   80a3   30 9a                 BR      RET_DELAY ; EXIT SUBROUTINE
+                        
+                        
+   80a5   bd            BUFFER5:     DB 0BDH ; ZERO THOUSANDS
+   80a6   bd            BUFFER4:     DB 0BDH ; ZERO HUNDREDS
+   80a7   bd            BUFFER3:     DB 0BDH ; ZERO TENS
+   80a8   bd            BUFFER2:     DB 0BDH ; ZERO ONES
+   80a9   bd            BUFFER1:     DB 0BDH ; ZERO TENTHS
+   80aa   bd            BUFFER0:     DB 0BDH ; ZERO HUNDREDTHS
+   80ab   20 10 08 04   SCAN_DIGIT: DB 20H, 10H, 8, 4, 2, 1 ; BIT NUMBERS TO TURN ON EACH DISPLAY
+   80af   02 01         
                                         ; VALUES THAT REPRESENT NUMBERS
-   80af   bd 30 9b ba   VALUES:     DB 0BDH, 030H, 09BH, 0BAH, 036H, 0AEH, 0AFH, 038H, 0BFH, 03EH
-   80b3   36 ae af 38   
-   80b7   bf 3e         
+   80b1   bd 30 9b ba   VALUES:     DB 0BDH, 030H, 09BH, 0BAH, 036H, 0AEH, 0AFH, 038H, 0BFH, 03EH
+   80b5   36 ae af 38   
+   80b9   bf 3e         
                         
                         
-   80b9   c0 80 fa      LIHNTH: LBR     IHNTH
+   80bb   c0 80 fc      LIHNTH: LBR     IHNTH
                         
-   80bc   3d b9         ZERO:   BN2     LIHNTH
-   80be   f8 83 bc f8   UNCZRO: LOAD    RC, HUNDREDTHS  ; LOAD RC WITH HUNDREDS
-   80c2   00 ac         
-   80c4   f8 00                 LDI     00H             ; LOAD ZERO TO ACC
-   80c6   5c                    STR     RC              ; ZERO HUNDREDTHS
-   80c7   f8 83 bc f8           LOAD    RC, TENTHS      ; LOAD RC WITH TENTHS
-   80cb   01 ac         
-   80cd   f8 00                 LDI     00H             ; ZERO ACC
-   80cf   5c                    STR     RC              ; RESET TENTHS
-   80d0   f8 83 bc f8           LOAD    RC, ONES        ; LOAD RC WITH ONES
-   80d4   02 ac         
-   80d6   f8 00                 LDI     00H             ; ZERO ACC
-   80d8   5c                    STR     RC              ; RESET ONES
-   80d9   f8 83 bc f8           LOAD    RC, TENS        ; LOAD RC WITH TENS
-   80dd   03 ac         
-   80df   f8 00                 LDI     00H             ; ZERO ACC
-   80e1   5c                    STR     RC              ; RESET TENS
-   80e2   f8 83 bc f8           LOAD    RC, HUNDREDS    ; LOAD RC WITH HUNDREDS
-   80e6   04 ac         
-   80e8   f8 00                 LDI     00H             ; ZERO ACC
-   80ea   5c                    STR     RC              ; SERO HUNDREDS
-   80eb   f8 83 bc f8           LOAD    RC, THOUSANDS   ; LOAD RC WITH THOUSANDS
-   80ef   05 ac         
-   80f1   f8 00                 LDI     00H             ; LOAD ZERO TO ACC
-   80f3   5c                    STR     RC              ; ZERO THOUSANDS
-   80f4   c0 81 a2              LBR     UPDB            ; UPDATE
+   80be   3d bb         ZERO:   BN2     LIHNTH
+   80c0   f8 83 bc f8   UNCZRO: LOAD    RC, HUNDREDTHS  ; LOAD RC WITH HUNDREDS
+   80c4   00 ac         
+   80c6   f8 00                 LDI     00H             ; LOAD ZERO TO ACC
+   80c8   5c                    STR     RC              ; ZERO HUNDREDTHS
+   80c9   f8 83 bc f8           LOAD    RC, TENTHS      ; LOAD RC WITH TENTHS
+   80cd   01 ac         
+   80cf   f8 00                 LDI     00H             ; ZERO ACC
+   80d1   5c                    STR     RC              ; RESET TENTHS
+   80d2   f8 83 bc f8           LOAD    RC, ONES        ; LOAD RC WITH ONES
+   80d6   02 ac         
+   80d8   f8 00                 LDI     00H             ; ZERO ACC
+   80da   5c                    STR     RC              ; RESET ONES
+   80db   f8 83 bc f8           LOAD    RC, TENS        ; LOAD RC WITH TENS
+   80df   03 ac         
+   80e1   f8 00                 LDI     00H             ; ZERO ACC
+   80e3   5c                    STR     RC              ; RESET TENS
+   80e4   f8 83 bc f8           LOAD    RC, HUNDREDS    ; LOAD RC WITH HUNDREDS
+   80e8   04 ac         
+   80ea   f8 00                 LDI     00H             ; ZERO ACC
+   80ec   5c                    STR     RC              ; SERO HUNDREDS
+   80ed   f8 83 bc f8           LOAD    RC, THOUSANDS   ; LOAD RC WITH THOUSANDS
+   80f1   05 ac         
+   80f3   f8 00                 LDI     00H             ; LOAD ZERO TO ACC
+   80f5   5c                    STR     RC              ; ZERO THOUSANDS
+   80f6   c0 81 a4              LBR     UPDB            ; UPDATE
                         
-   80f7   f8 00         COUNT:  LDI     00H             ; LOAD ZERO TO ACCUMULATOR
-   80f9   5f                    STR     RF              ; ZERO FREERUN
-   80fa   f8 83 bc f8   IHNTH:  LOAD    RC, HUNDREDTHS  ; RC BECOMES HUNDREDTHS
-   80fe   00 ac         
-   8100   ec                    SEX     RC              ; SET INDEX REGISTER TO RC
-   8101   f8 02                 LDI     02H             ; LOAD 02H (TOO SLOW FOR 01)
+   80f9   f8 00         COUNT:  LDI     00H             ; LOAD ZERO TO ACCUMULATOR
+   80fb   5f                    STR     RF              ; ZERO FREERUN
+   80fc   f8 83 bc f8   IHNTH:  LOAD    RC, HUNDREDTHS  ; RC BECOMES HUNDREDTHS
+   8100   00 ac         
+   8102   ec                    SEX     RC              ; SET INDEX REGISTER TO RC
+   8103   f8 02                 LDI     02H             ; LOAD 02H (TOO SLOW FOR 01)
                                                         ; SO WE ONLY COUNT BY 2
-   8103   f4                    ADD                     ;INCREMENT TIMER
-   8104   5c                    STR     RC      ;HUNDREDTHS NOW CONTAINS THE HUNDREDTHS VALUE
-   8105   0c                    LDN     RC              ; LOAD HUNDREDTHS
-   8106   fb 0a                 XRI     0AH             ; SEE IF IT'S REACHED 0A
-   8108   c2 81 0e              LBZ     ITNTH           ; IF SO, INC TENTHS, RESET HUNDREDTHS
-   810b   c0 81 a2              LBR     UPDB            ; IF NOT, UPDATE THE DISPLAY
+   8105   f4                    ADD                     ;INCREMENT TIMER
+   8106   5c                    STR     RC      ;HUNDREDTHS NOW CONTAINS THE HUNDREDTHS VALUE
+   8107   0c                    LDN     RC              ; LOAD HUNDREDTHS
+   8108   fb 0a                 XRI     0AH             ; SEE IF IT'S REACHED 0A
+   810a   c2 81 10              LBZ     ITNTH           ; IF SO, INC TENTHS, RESET HUNDREDTHS
+   810d   c0 81 a4              LBR     UPDB            ; IF NOT, UPDATE THE DISPLAY
                         
-   810e   f8 83 bc f8   ITNTH:  LOAD    RC, HUNDREDTHS  ; RELOAD RC WITH HUNDREDTHS
-   8112   00 ac         
-   8114   f8 00                 LDI     0H              ; LOAD ZERO TO ACC
-   8116   5c                    STR     RC              ; ZERO HUNDREDTHS
-   8117   f8 83 bc f8           LOAD    RC, TENTHS      ; RELOAD RC WITH TENTHS
-   811b   01 ac         
-   811d   ec                    SEX     RC              ; SET THE INDEX REGISTER TO RC
-   811e   f8 01                 LDI     01H             ; LOAD 1 TO THE ACCUMULATOR
-   8120   f4                    ADD                     ; ADD 1 TO TENTHS
-   8121   5c                    STR     RC      ;RC NOW CONTAINS THE TENTHS VALUES
-   8122   0c                    LDN     RC              ; RELOAD RC
-   8123   fb 0a                 XRI     0AH             ; CHECK IT FOR 0AH
-   8125   c2 81 2b              LBZ     IONES           ; IF SO, THEN RESET TENTHS, INC ONES
-   8128   c0 81 a2              LBR     UPDB            ; OTHERWISE UPDATE
+   8110   f8 83 bc f8   ITNTH:  LOAD    RC, HUNDREDTHS  ; RELOAD RC WITH HUNDREDTHS
+   8114   00 ac         
+   8116   f8 00                 LDI     0H              ; LOAD ZERO TO ACC
+   8118   5c                    STR     RC              ; ZERO HUNDREDTHS
+   8119   f8 83 bc f8           LOAD    RC, TENTHS      ; RELOAD RC WITH TENTHS
+   811d   01 ac         
+   811f   ec                    SEX     RC              ; SET THE INDEX REGISTER TO RC
+   8120   f8 01                 LDI     01H             ; LOAD 1 TO THE ACCUMULATOR
+   8122   f4                    ADD                     ; ADD 1 TO TENTHS
+   8123   5c                    STR     RC      ;RC NOW CONTAINS THE TENTHS VALUES
+   8124   0c                    LDN     RC              ; RELOAD RC
+   8125   fb 0a                 XRI     0AH             ; CHECK IT FOR 0AH
+   8127   c2 81 2d              LBZ     IONES           ; IF SO, THEN RESET TENTHS, INC ONES
+   812a   c0 81 a4              LBR     UPDB            ; OTHERWISE UPDATE
                         
-   812b   f8 83 bc f8   IONES:  LOAD    RC, TENTHS      ; LOAD RC WITH TENTHS
-   812f   01 ac         
-   8131   f8 00                 LDI     0H              ; ZERO ACCUMULATOR
-   8133   5c                    STR     RC              ;CLEAR TENTHS
-   8134   f8 83 bc f8           LOAD    RC, ONES        ; RELOAD RC WITH ONES
-   8138   02 ac         
-   813a   ec                    SEX     RC              ; SET RC AS THE INDEX REGISTER
-   813b   f8 01                 LDI     01H             ; LOAD 01H TO ACC
-   813d   f4                    ADD                     ; ADD 1 TO ONES
-   813e   5c                    STR     RC      ;RC NOW CONTAINS THE ONES VALUES
-   813f   0c                    LDN     RC              ; RELOAD ONES
-   8140   fb 0a                 XRI     0AH             ; SEE IF IT'S REACHED 0AH
-   8142   c2 81 48              LBZ     ITENS           ; IF SO, THEN RESET ONES, INCREMENT TENS
-   8145   c0 81 a2              LBR     UPDB            ; OTHERWISE, UPDATE
+   812d   f8 83 bc f8   IONES:  LOAD    RC, TENTHS      ; LOAD RC WITH TENTHS
+   8131   01 ac         
+   8133   f8 00                 LDI     0H              ; ZERO ACCUMULATOR
+   8135   5c                    STR     RC              ;CLEAR TENTHS
+   8136   f8 83 bc f8           LOAD    RC, ONES        ; RELOAD RC WITH ONES
+   813a   02 ac         
+   813c   ec                    SEX     RC              ; SET RC AS THE INDEX REGISTER
+   813d   f8 01                 LDI     01H             ; LOAD 01H TO ACC
+   813f   f4                    ADD                     ; ADD 1 TO ONES
+   8140   5c                    STR     RC      ;RC NOW CONTAINS THE ONES VALUES
+   8141   0c                    LDN     RC              ; RELOAD ONES
+   8142   fb 0a                 XRI     0AH             ; SEE IF IT'S REACHED 0AH
+   8144   c2 81 4a              LBZ     ITENS           ; IF SO, THEN RESET ONES, INCREMENT TENS
+   8147   c0 81 a4              LBR     UPDB            ; OTHERWISE, UPDATE
                         
-   8148   f8 83 bc f8   ITENS:  LOAD    RC, ONES        ; LOAD RC WITH ONES
-   814c   02 ac         
-   814e   f8 00                 LDI     0H              ; ZERO ACC
-   8150   5c                    STR     RC              ;ONES ARE NOW ZERO
-   8151   f8 83 bc f8           LOAD    RC, TENS        ; RELOAD RC WITH TENS
-   8155   03 ac         
-   8157   ec                    SEX     RC              ; SET RC AS THE INDEX REGISTER
-   8158   f8 01                 LDI     01H             ; LOAD 1 TO ACCUMULATOR
-   815a   f4                    ADD                     ; ADD ONE TO TENS
-   815b   5c                    STR     RC              ; STORE INCREMENTED VALUE TO TENS
-   815c   0c                    LDN     RC              ; RLOAD RC
-   815d   fb 0a                 XRI     0AH             ; CHECK TO SEE IF IT'S REACHED A
-   815f   c2 81 65              LBZ     IHUN            ; IF SO, RESET TENS, INCREMENT HUNDREDS
-   8162   c0 81 a2              LBR     UPDB            ; OTHERWISE, UPDATE
+   814a   f8 83 bc f8   ITENS:  LOAD    RC, ONES        ; LOAD RC WITH ONES
+   814e   02 ac         
+   8150   f8 00                 LDI     0H              ; ZERO ACC
+   8152   5c                    STR     RC              ;ONES ARE NOW ZERO
+   8153   f8 83 bc f8           LOAD    RC, TENS        ; RELOAD RC WITH TENS
+   8157   03 ac         
+   8159   ec                    SEX     RC              ; SET RC AS THE INDEX REGISTER
+   815a   f8 01                 LDI     01H             ; LOAD 1 TO ACCUMULATOR
+   815c   f4                    ADD                     ; ADD ONE TO TENS
+   815d   5c                    STR     RC              ; STORE INCREMENTED VALUE TO TENS
+   815e   0c                    LDN     RC              ; RLOAD RC
+   815f   fb 0a                 XRI     0AH             ; CHECK TO SEE IF IT'S REACHED A
+   8161   c2 81 67              LBZ     IHUN            ; IF SO, RESET TENS, INCREMENT HUNDREDS
+   8164   c0 81 a4              LBR     UPDB            ; OTHERWISE, UPDATE
                         
-   8165   f8 83 bc f8   IHUN:   LOAD    RC, TENS        ; LOAD RC WITH TENS
-   8169   03 ac         
-   816b   f8 00                 LDI     0H              ; ZERO ACC
-   816d   5c                    STR     RC              ; TENS NOW CONTAINS A ZERO
-   816e   f8 83 bc f8           LOAD    RC, HUNDREDS    ; SET RC TO HUNDREDS
-   8172   04 ac         
-   8174   ec                    SEX     RC              ; SET THE INDEX REGISTER TO RC
-   8175   f8 01                 LDI     01H             ; LOAD 1 TO ACC
-   8177   f4                    ADD                     ; ADD 1 TO HUNDREDS
-   8178   5c                    STR     RC              ; HUNDREDS NOW HAVE THE INCREMENTED VALUE
-   8179   0c                    LDN     RC              ; RELOAD HUNDREDS
-   817a   fb 0a                 XRI     0AH             ; SEE IF IT'S REACHED A
-   817c   c2 81 82              LBZ     ITHOU           ; IF SO, RESET HUNDREDS, INCREMENT THOUSANDS
-   817f   c0 81 a2              LBR     UPDB            ; OTHERWISE, UPDATE
+   8167   f8 83 bc f8   IHUN:   LOAD    RC, TENS        ; LOAD RC WITH TENS
+   816b   03 ac         
+   816d   f8 00                 LDI     0H              ; ZERO ACC
+   816f   5c                    STR     RC              ; TENS NOW CONTAINS A ZERO
+   8170   f8 83 bc f8           LOAD    RC, HUNDREDS    ; SET RC TO HUNDREDS
+   8174   04 ac         
+   8176   ec                    SEX     RC              ; SET THE INDEX REGISTER TO RC
+   8177   f8 01                 LDI     01H             ; LOAD 1 TO ACC
+   8179   f4                    ADD                     ; ADD 1 TO HUNDREDS
+   817a   5c                    STR     RC              ; HUNDREDS NOW HAVE THE INCREMENTED VALUE
+   817b   0c                    LDN     RC              ; RELOAD HUNDREDS
+   817c   fb 0a                 XRI     0AH             ; SEE IF IT'S REACHED A
+   817e   c2 81 84              LBZ     ITHOU           ; IF SO, RESET HUNDREDS, INCREMENT THOUSANDS
+   8181   c0 81 a4              LBR     UPDB            ; OTHERWISE, UPDATE
                         
-   8182   f8 83 bc f8   ITHOU:  LOAD    RC, HUNDREDS    ; LOAD RC WITH HUNDREDS
-   8186   04 ac         
-   8188   f8 00                 LDI     0H              ; LOAD ZERO TO ACC
-   818a   5c                    STR     RC              ; STORE ZERO TO HUNDREDS
-   818b   f8 83 bc f8           LOAD    RC, THOUSANDS   ; RC BECOMES THOUSANDS
-   818f   05 ac         
-   8191   ec                    SEX     RC              ; SET INDEX REGISTER TO RC
-   8192   f8 01                 LDI     01H             ; LOAD 1 TO ACC
-   8194   f4                    ADD                     ; INCREMENT THOUSANDS
-   8195   5c                    STR     RC              ; THOUSANDS NOW CONTAIN INCREMENTED VALUE
-   8196   0c                    LDN     RC              ; RELOAD THOUSANDS
-   8197   fb 0a                 XRI     0AH             ; CHECK TO SEE IF IT'S REACHED A
-   8199   c2 80 be              LBZ     UNCZRO          ; IF SO, RESTART TIMER
-   819c   c0 81 a2              LBR     UPDB            ; OTHERWISE UPDATE
+   8184   f8 83 bc f8   ITHOU:  LOAD    RC, HUNDREDS    ; LOAD RC WITH HUNDREDS
+   8188   04 ac         
+   818a   f8 00                 LDI     0H              ; LOAD ZERO TO ACC
+   818c   5c                    STR     RC              ; STORE ZERO TO HUNDREDS
+   818d   f8 83 bc f8           LOAD    RC, THOUSANDS   ; RC BECOMES THOUSANDS
+   8191   05 ac         
+   8193   ec                    SEX     RC              ; SET INDEX REGISTER TO RC
+   8194   f8 01                 LDI     01H             ; LOAD 1 TO ACC
+   8196   f4                    ADD                     ; INCREMENT THOUSANDS
+   8197   5c                    STR     RC              ; THOUSANDS NOW CONTAIN INCREMENTED VALUE
+   8198   0c                    LDN     RC              ; RELOAD THOUSANDS
+   8199   fb 0a                 XRI     0AH             ; CHECK TO SEE IF IT'S REACHED A
+   819b   c2 80 c0              LBZ     UNCZRO          ; IF SO, RESTART TIMER
+   819e   c0 81 a4              LBR     UPDB            ; OTHERWISE UPDATE
                         
-   819f   c0 80 7e      CONT1:  LBR     CONT            ; CONTINUE (SHORT TO LONG BRANCH ADAPTER)
-                        
-                        
-   81a2   c4            UPDB:   NOP     ; UPDATE LOGIC
-   81a3   f8 80 b9 f8   UHNTH:  LOAD    R9, VALUES      ; R9 IS VALUES
-   81a7   af a9         
-   81a9   f8 83 bc f8           LOAD    RC, HUNDREDTHS  ; START RC WITH HUNDREDTHS
-   81ad   00 ac         
-   81af   ec                    SEX     RC              ; INDEX REGISTER WILL BE RC
-   81b0   89                    GLO     R9              ; GET THE LOW BYTE
-   81b1   f4                    ADD                     ; ADD LOW BYTE TO GET BIT PATTERN
-   81b2   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR HUNDREDTHS
-   81b3   f8 80 b6 f8           LOAD    R6, BUFFER0     ; R6 BECOMES BUFFER ZERO
-   81b7   a8 a6         
-   81b9   09                    LDN     R9              ; LOAD VALUE OF HUNDREDTHS
-   81ba   56                    STR     R6              ; STORE TO R6 (BUFFER0 WORKSPACE)
-                        
-   81bb   f8 80 b9 f8   UTNTHS: LOAD    R9, VALUES      ; R9 IS VALUES
-   81bf   af a9         
-   81c1   f8 83 bc f8           LOAD    RC, TENTHS      ; RC IS NOW TENTHS
-   81c5   01 ac         
-   81c7   ec                    SEX     RC              ; SET THE INDEX REGISTER TO RC
-   81c8   89                    GLO     R9              ; GET THE BITT PATTERN ADDRESS
-   81c9   f4                    ADD                     ; FIND THE RIGHT BITT PATTERN
-   81ca   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR TENTHS
-   81cb   f8 80 b6 f8           LOAD    R6, BUFFER1     ; R6 BECOMES BUFFER 1
-   81cf   a7 a6         
-   81d1   09                    LDN     R9              ; LOAD THE BIT PATTERN TO MEMORY
-   81d2   56                    STR     R6              ; STORE THIS TO BUFFER1
+   81a1   c0 80 7f      CONT1:  LBR     CONT            ; CONTINUE (SHORT TO LONG BRANCH ADAPTER)
                         
                         
-   81d3   f8 80 b9 f8   UONES:  LOAD    R9, VALUES      ; BE SURE R9 IS CODED VALUES
-   81d7   af a9         
-   81d9   f8 83 bc f8           LOAD    RC, ONES        ; RC BECOMES ONES
-   81dd   02 ac         
-   81df   ec                    SEX     RC              ; SET THE INDEX REGISTER TO RC
-   81e0   89                    GLO     R9              ; GET STARTING VALUE CODE FROM FROM R9
-   81e1   f4                    ADD                     ; FIND THE BIT PATTERN TO DISPLAY
-   81e2   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR ONES
-   81e3   f8 80 b6 f8           LOAD    R6, BUFFER2     ; R6 BECOMES BUFFER2
-   81e7   a6 a6         
-   81e9   09                    LDN     R9              ; LOAD THE BIT PATTERN FOR THE VALUE
-   81ea   56                    STR     R6              ; STORE THIS TO BUFFER2
-   81eb   5e                    STR     RE              ; STORE THE PATTERN TO GPIO
+   81a4   c4            UPDB:   NOP     ; UPDATE LOGIC
+   81a5   f8 80 b9 f8   UHNTH:  LOAD    R9, VALUES      ; R9 IS VALUES
+   81a9   b1 a9         
+   81ab   f8 83 bc f8           LOAD    RC, HUNDREDTHS  ; START RC WITH HUNDREDTHS
+   81af   00 ac         
+   81b1   ec                    SEX     RC              ; INDEX REGISTER WILL BE RC
+   81b2   89                    GLO     R9              ; GET THE LOW BYTE
+   81b3   f4                    ADD                     ; ADD LOW BYTE TO GET BIT PATTERN
+   81b4   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR HUNDREDTHS
+   81b5   f8 80 b6 f8           LOAD    R6, BUFFER0     ; R6 BECOMES BUFFER ZERO
+   81b9   aa a6         
+   81bb   09                    LDN     R9              ; LOAD VALUE OF HUNDREDTHS
+   81bc   56                    STR     R6              ; STORE TO R6 (BUFFER0 WORKSPACE)
                         
-   81ec   f8 80 b9 f8   UTENS:  LOAD    R9, VALUES      ; RELOAD R9 WITH VALUES
-   81f0   af a9         
-   81f2   f8 83 bc f8           LOAD    RC, TENS        ; RC WILL BECOME TENS
-   81f6   03 ac         
-   81f8   ec                    SEX     RC              ; CHANGE THE INDEX REGISTER TO RC
-   81f9   89                    GLO     R9              ; GET THE LOW VALUE FROM R9
-   81fa   f4                    ADD                     ; FIND THE BIT PATTERN TO DISPLAY
-   81fb   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR TENS
-   81fc   f8 80 b6 f8           LOAD    R6, BUFFER3     ; R6 BECOMES BUFFER 3
-   8200   a5 a6         
-   8202   09                    LDN     R9              ; LOAD THE BIT PATTERN FROM VALUES
-   8203   56                    STR     R6              ; STORE THIS TO BUFFER3
-                        
-   8204   f8 80 b9 f8   UHNDRD: LOAD    R9, VALUES      ; R9 BECOMES VALUES
-   8208   af a9         
-   820a   f8 83 bc f8           LOAD    RC, HUNDREDS    ; RC BECOMES HUDREDS
-   820e   04 ac         
-   8210   ec                    SEX     RC              ; CHANGE THE INDEX REGISTER TO RC
-   8211   89                    GLO     R9              ; GET THE LOW BYTE OF VALUES
-   8212   f4                    ADD                     ; FIND THE BIT PATTERN TO DISPLAY
-   8213   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR HUNDREDS
-   8214   f8 80 b6 f8           LOAD    R6, BUFFER4     ; R6 BECOMES BUFFER4
-   8218   a4 a6         
-   821a   09                    LDN     R9              ; LOAD THE BIT PATTERN
-   821b   56                    STR     R6              ; STORE THIS TO BUFFER4
-                        
-   821c   f8 80 b9 f8   UTHOU:  LOAD    R9, VALUES      ; LOAD R9 WITH START OF BIT PATTERNS
-   8220   af a9         
-   8222   f8 83 bc f8           LOAD    RC, THOUSANDS   ; RC BECOMES THOUSANDS
-   8226   05 ac         
-   8228   ec                    SEX     RC              ; RC BECOMES INDEX REGISTER
-   8229   89                    GLO     R9              ; GET THE STARTING ADDRESS OF VALUES
-   822a   f4                    ADD                     ; FIND THE BIT PATTERN WE NEED
-   822b   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR THOUSANDS
-   822c   f8 80 b6 f8           LOAD    R6, BUFFER5     ; R6 NOW BECOMES BUFFER5
-   8230   a3 a6         
-   8232   09                    LDN     R9              ; LOAD THE BIT PATTERN WE NEED
-   8233   56                    STR     R6              ; STORE THIS TO BUFFER5
+   81bd   f8 80 b9 f8   UTNTHS: LOAD    R9, VALUES      ; R9 IS VALUES
+   81c1   b1 a9         
+   81c3   f8 83 bc f8           LOAD    RC, TENTHS      ; RC IS NOW TENTHS
+   81c7   01 ac         
+   81c9   ec                    SEX     RC              ; SET THE INDEX REGISTER TO RC
+   81ca   89                    GLO     R9              ; GET THE BITT PATTERN ADDRESS
+   81cb   f4                    ADD                     ; FIND THE RIGHT BITT PATTERN
+   81cc   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR TENTHS
+   81cd   f8 80 b6 f8           LOAD    R6, BUFFER1     ; R6 BECOMES BUFFER 1
+   81d1   a9 a6         
+   81d3   09                    LDN     R9              ; LOAD THE BIT PATTERN TO MEMORY
+   81d4   56                    STR     R6              ; STORE THIS TO BUFFER1
                         
                         
-   8234   35 57         CHKEF1: B2      EF2P    ; IF 2 IS PRESSED, SHUT OFF Q, AND RESET
-   8236   3c 43                 BN1     RSFLAG  ; IF 1 IS NOT PRESSED, RESET FLAGS
-   8238   0d                    LDN     RD      ; LOAD EFLAGS
-   8239   32 3e                 BZ      ACTOK   ; IF IT'S ZERO, THEN OK TO ACT (ONESHOT)
-   823b   c0 80 72              LBR     CONT2   ; CONTINUE
+   81d5   f8 80 b9 f8   UONES:  LOAD    R9, VALUES      ; BE SURE R9 IS CODED VALUES
+   81d9   b1 a9         
+   81db   f8 83 bc f8           LOAD    RC, ONES        ; RC BECOMES ONES
+   81df   02 ac         
+   81e1   ec                    SEX     RC              ; SET THE INDEX REGISTER TO RC
+   81e2   89                    GLO     R9              ; GET STARTING VALUE CODE FROM FROM R9
+   81e3   f4                    ADD                     ; FIND THE BIT PATTERN TO DISPLAY
+   81e4   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR ONES
+   81e5   f8 80 b6 f8           LOAD    R6, BUFFER2     ; R6 BECOMES BUFFER2
+   81e9   a8 a6         
+   81eb   09                    LDN     R9              ; LOAD THE BIT PATTERN FOR THE VALUE
+   81ec   56                    STR     R6              ; STORE THIS TO BUFFER2
+                                
+                                ; UPDATE GPIO
+   81ed   f8 83 bc f8           LOAD    RC,TENS
+   81f1   03 ac         
+   81f3   0c                    LDN     RC
+   81f4   fe                    SHL
+   81f5   fe                    SHL
+   81f6   fe                    SHL
+   81f7   fe                    SHL
+   81f8   52                    STR     R2
+   81f9   f8 83 bc f8           LOAD    RC,ONES
+   81fd   02 ac         
+   81ff   ec                    SEX     RC
+   8200   02                    LDN     R2   
+   8201   f1                    OR
+   8202   5e                    STR     RE              ; STORE THE PATTERN TO GPIO
                         
-   823e   31 49         ACTOK:  BQ      RESQ    ; IF Q IS ON, RESET Q
-   8240   c0 82 50              LBR     SETQ    ; OTHERWISE TURN ON Q
+   8203   f8 80 b9 f8   UTENS:  LOAD    R9, VALUES      ; RELOAD R9 WITH VALUES
+   8207   b1 a9         
+   8209   f8 83 bc f8           LOAD    RC, TENS        ; RC WILL BECOME TENS
+   820d   03 ac         
+   820f   ec                    SEX     RC              ; CHANGE THE INDEX REGISTER TO RC
+   8210   89                    GLO     R9              ; GET THE LOW VALUE FROM R9
+   8211   f4                    ADD                     ; FIND THE BIT PATTERN TO DISPLAY
+   8212   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR TENS
+   8213   f8 80 b6 f8           LOAD    R6, BUFFER3     ; R6 BECOMES BUFFER 3
+   8217   a7 a6         
+   8219   09                    LDN     R9              ; LOAD THE BIT PATTERN FROM VALUES
+   821a   56                    STR     R6              ; STORE THIS TO BUFFER3
+                        
+   821b   f8 80 b9 f8   UHNDRD: LOAD    R9, VALUES      ; R9 BECOMES VALUES
+   821f   b1 a9         
+   8221   f8 83 bc f8           LOAD    RC, HUNDREDS    ; RC BECOMES HUDREDS
+   8225   04 ac         
+   8227   ec                    SEX     RC              ; CHANGE THE INDEX REGISTER TO RC
+   8228   89                    GLO     R9              ; GET THE LOW BYTE OF VALUES
+   8229   f4                    ADD                     ; FIND THE BIT PATTERN TO DISPLAY
+   822a   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR HUNDREDS
+   822b   f8 80 b6 f8           LOAD    R6, BUFFER4     ; R6 BECOMES BUFFER4
+   822f   a6 a6         
+   8231   09                    LDN     R9              ; LOAD THE BIT PATTERN
+   8232   56                    STR     R6              ; STORE THIS TO BUFFER4
+                        
+   8233   f8 80 b9 f8   UTHOU:  LOAD    R9, VALUES      ; LOAD R9 WITH START OF BIT PATTERNS
+   8237   b1 a9         
+   8239   f8 83 bc f8           LOAD    RC, THOUSANDS   ; RC BECOMES THOUSANDS
+   823d   05 ac         
+   823f   ec                    SEX     RC              ; RC BECOMES INDEX REGISTER
+   8240   89                    GLO     R9              ; GET THE STARTING ADDRESS OF VALUES
+   8241   f4                    ADD                     ; FIND THE BIT PATTERN WE NEED
+   8242   a9                    PLO     R9  ;R9 NOW SET TO WHERE WE NEED DATA FOR THOUSANDS
+   8243   f8 80 b6 f8           LOAD    R6, BUFFER5     ; R6 NOW BECOMES BUFFER5
+   8247   a5 a6         
+   8249   09                    LDN     R9              ; LOAD THE BIT PATTERN WE NEED
+   824a   56                    STR     R6              ; STORE THIS TO BUFFER5
                         
                         
-   8243   f8 00         RSFLAG: LDI     00H     ; LOAD 0 TO ACCUMULATOR
-   8245   5d                    STR     RD      ; RESET EFLAGS
-   8246   c0 80 72              LBR     CONT2   ; CONTINUE
+   824b   35 6e         CHKEF1: B2      EF2P    ; IF 2 IS PRESSED, SHUT OFF Q, AND RESET
+   824d   3c 5a                 BN1     RSFLAG  ; IF 1 IS NOT PRESSED, RESET FLAGS
+   824f   0d                    LDN     RD      ; LOAD EFLAGS
+   8250   32 55                 BZ      ACTOK   ; IF IT'S ZERO, THEN OK TO ACT (ONESHOT)
+   8252   c0 80 73              LBR     CONT2   ; CONTINUE
                         
-   8249   7a            RESQ:   REQ             ; SHUT OFF Q
-   824a   f8 01                 LDI     01H     ; LOAD 1 TO ACCUMULATOR
-   824c   5d                    STR     RD      ; SET EFLAGS
-   824d   c0 80 72              LBR     CONT2   ; CONTINUE
+   8255   31 60         ACTOK:  BQ      RESQ    ; IF Q IS ON, RESET Q
+   8257   c0 82 67              LBR     SETQ    ; OTHERWISE TURN ON Q
                         
-   8250   7b            SETQ:   SEQ             ; TURN ON Q
-   8251   f8 01                 LDI     01H     ; LOAD 1 TO ACCUMULATOR
-   8253   5d                    STR     RD      ; SET EFLAGS
-   8254   c0 80 72              LBR     CONT2   ; JUMP TO CONT2
                         
-   8257   7a            EF2P:   REQ             ; SHUT OFF Q
-   8258   c0 80 be              LBR     UNCZRO  ; JUMP TO UNCONDITIONAL ZERO
-   825b                         END
-823e  ACTOK         2756  BREAK         80a8  BUFFER0       80a7  BUFFER1   
-80a6  BUFFER2       80a5  BUFFER3       80a4  BUFFER4       80a3  BUFFER5   
-8234  CHKEF1        807e  CONT          819f  CONT1         8072  CONT2     
-80f7  COUNT         809a  DELAY         809d  DELAY1        7101  DIGIT     
-8257  EF2P          8307  EFLAGS        8306  FREERUN       7000  GPIO1     
-8304  HUNDREDS      8300  HUNDREDTHS    80fa  IHNTH         8165  IHUN      
-8000  INIT          812b  IONES         8148  ITENS         8182  ITHOU     
-810e  ITNTH         80b9  LIHNTH        8087  LOOP          8063  MAIN      
+   825a   f8 00         RSFLAG: LDI     00H     ; LOAD 0 TO ACCUMULATOR
+   825c   5d                    STR     RD      ; RESET EFLAGS
+   825d   c0 80 73              LBR     CONT2   ; CONTINUE
+                        
+   8260   7a            RESQ:   REQ             ; SHUT OFF Q
+   8261   f8 01                 LDI     01H     ; LOAD 1 TO ACCUMULATOR
+   8263   5d                    STR     RD      ; SET EFLAGS
+   8264   c0 80 73              LBR     CONT2   ; CONTINUE
+                        
+   8267   7b            SETQ:   SEQ             ; TURN ON Q
+   8268   f8 01                 LDI     01H     ; LOAD 1 TO ACCUMULATOR
+   826a   5d                    STR     RD      ; SET EFLAGS
+   826b   c0 80 73              LBR     CONT2   ; JUMP TO CONT2
+                        
+   826e   7a            EF2P:   REQ             ; SHUT OFF Q
+   826f   c0 80 c0              LBR     UNCZRO  ; JUMP TO UNCONDITIONAL ZERO
+   8272                         END
+8255  ACTOK         2756  BREAK         80aa  BUFFER0       80a9  BUFFER1   
+80a8  BUFFER2       80a7  BUFFER3       80a6  BUFFER4       80a5  BUFFER5   
+824b  CHKEF1        807f  CONT          81a1  CONT1         8073  CONT2     
+80f9  COUNT         809b  DELAY         809e  DELAY1        7101  DIGIT     
+826e  EF2P          8307  EFLAGS        8306  FREERUN       7000  GPIO1     
+8304  HUNDREDS      8300  HUNDREDTHS    80fc  IHNTH         8167  IHUN      
+8000  INIT          812d  IONES         814a  ITENS         8184  ITHOU     
+8110  ITNTH         80bb  LIHNTH        8088  LOOP          8064  MAIN      
 8302  ONES          0000  R0            0001  R1            0002  R2        
 0003  R3            0004  R4            0005  R5            0006  R6        
 0007  R7            0008  R8            0009  R9            000a  RA        
 000b  RB            000c  RC            000d  RD            000e  RE        
-8249  RESQ          8099  RET_DELAY     000f  RF            8243  RSFLAG    
-80a9  SCAN_DIGIT    7102  SEGMENT       8250  SETQ          8303  TENS      
-8301  TENTHS        8305  THOUSANDS     8204  UHNDRD        81a3  UHNTH     
-80be  UNCZRO        81d3  UONES         81a2  UPDB          81ec  UTENS     
-821c  UTHOU         81bb  UTNTHS        80af  VALUES        80bc  ZERO      
+8260  RESQ          809a  RET_DELAY     000f  RF            825a  RSFLAG    
+80ab  SCAN_DIGIT    7102  SEGMENT       8267  SETQ          8308  TEMP      
+8303  TENS          8301  TENTHS        8305  THOUSANDS     821b  UHNDRD    
+81a5  UHNTH         80c0  UNCZRO        81d5  UONES         81a4  UPDB      
+8203  UTENS         8233  UTHOU         81bd  UTNTHS        80b1  VALUES    
+80be  ZERO          
 
