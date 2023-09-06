@@ -1,0 +1,203 @@
+                        ; COUNTER FOR COSMAC MICROCONTROLLER TRAINING UNIT
+                        ; EF1 INCREMENTS THE COUNTER
+                        ; EF2 RESETS THE COUNTER
+                        ; COMPILED WITH A18 ASSEMBLER
+                        ; IN DEBIAN LINUX, I CREATED THE FOLLOWING SCRIPT
+                        ; NAMED ASM18
+                        
+                        ; #!/bin/bash
+                        ;./a18 $1.asm -l $1.lst -o $1.hex
+                        
+                        ; THEN MAKE IT EXECUTABLE chmod +x ASM18
+                        ; TO COMPILE:  ./ASM18 FILENAME
+                        ; --RICKY BRYCE
+                        
+   7000                 GPIO1:      EQU 7000H
+   7102                 SEGMENT:    EQU 7102H
+   7101                 DIGIT:      EQU 7101H
+   8100                 ONES:       EQU 8100H
+   8101                 TENS:       EQU 8101H
+   2756                 BREAK:      EQU 2756H
+                        
+   8000                     org    8000H ; MICROCONTROLLER TRAINING UNIT STARTS AT 8000H FOR RAM
+   0000                 R0    EQU    0  ; MAIN PROGRAM COUNTER
+   0001                 R1    EQU    1
+   0002                 R2    EQU    2  ; GPIO
+   0003                 R3    EQU    3  ; DELAY SUBROUTINE COUNTER
+   0004                 R4    EQU    4  ; SEGMENT ACTUAL
+   0005                 R5    EQU    5  ; DIGIT ACTUAL
+   0006                 R6    EQU    6  ; DISPLAY CODE FOR DIGITS
+   0007                 R7    EQU    7  ; DELAY LOOP
+   0008                 R8    EQU    8  ; LOOP COUNTER FOR SCAN
+   0009                 R9    EQU    9  ; VALUES
+   000a                 RA    EQU    10 ; DISPLAY BUFFER
+   000b                 RB    EQU    11 ; SCAN_DIGIT
+   000c                 RC    EQU    12 ; ONES COUNTER
+   000d                 RD    EQU    13 ; TENS COUNTER
+   000e                 RE    EQU    14
+   000f                 RF    EQU    15
+                        
+   8000   f8 80 b3 f8   INIT:   LOAD    R3, DELAY   ; LOAD R3 WITH DELAY LOCATION
+   8004   57 a3         
+   8006   f8 71 b4 f8           LOAD    R4, SEGMENT ; LOAD R4 WITH ACTUAL SEGMENT LOCATION
+   800a   02 a4         
+   800c   f8 71 b5 f8           LOAD    R5, DIGIT   ; LOAD R5 WITH ACTUAL DIGIT LOCATION
+   8010   01 a5         
+   8012   f8 70 b2 f8           LOAD    R2, GPIO1   ; LOAD 2 WITH GPIO1 (LEDS)
+   8016   00 a2         
+   8018   f8 00                 LDI     00H         ; LOAD 0 TO ACCUMULATOR
+   801a   f8 81 bc f8           LOAD    RC, ONES    ; LOAD RC WITH ONES
+   801e   00 ac         
+   8020   f8 00                 LDI     00H         ; RELOAD ACCUMULATOR WITH ZERO
+   8022   5c                    STR     RC          ; STORE THIS TO THE ONES WORKSPACE
+   8023   f8 81 bd f8           LOAD    RD, TENS    ; LOAD RD WITH TENS LOCATION
+   8027   01 ad         
+   8029   f8 00                 LDI     00H         ; RELOAD ACCUMULATOR WITH ZERO
+   802b   5d                    STR     RD          ; ZERO THE TENS PLACE
+   802c   52                    STR     R2          ; ZERO THE LEDS
+                        
+                        
+   802d   f8 80 ba f8   MAIN:   LOAD    RA, BUFFER5 ; LOAD A WITH BUFFER 5 (ONES)
+   8031   60 aa         
+   8033   f8 80 b9 f8           LOAD    R9, VALUE0  ; LOAD R9 WITH VALUE CODES FOR DIGITS
+   8037   6c a9         
+   8039   30 76                 BR      COUNT       ; GO COUNT
+   803b   f8 80 bb f8   CONT:   LOAD    RB, SCAN_DIGIT  ; SCAN THE DIGIT
+   803f   66 ab         
+   8041   f8 06                 LDI     6       ; LOAD ACCUMULATOR WITH 6 SINCE THERE ARE 6 DIGITS
+   8043   a8                    PLO     R8      ; LOOP COUNT
+   8044   0b            LOOP:   LDN     RB      ; GET DIGIT CONTROL
+   8045   fb ff                 XRI     0FFH    ; COMPLEMENT IT
+   8047   55                    STR     R5      ; WRITE TO DIGIT
+   8048   0a                    LDN     RA      ; GET BYTE FROM BUFFER
+   8049   54                    STR     R4      ; WRITE TO SEGMENT
+   804a   d3                    SEP     R3      ; DELAY
+   804b   f8 00                 LDI     0       ; ZERO ACCUMULATOR
+   804d   54                    STR     R4      ; TURN OFF SEGMENTS
+   804e   1a                    INC     RA      ; INCREMENT DISPLAY BUFFER
+   804f   1b                    INC     RB      ; INCREMENT DIGIT TO SCAN
+   8050   28                    DEC     R8      ; DECREMENT THE LOOP COUNTER
+   8051   88                    GLO     R8      ; RELOAD A WITH CURRENT LOOP COUNTER VALUE
+   8052   3a 44                 BNZ     LOOP    ; UNTIL 6 DIGITS
+   8054   30 2d                 BR      MAIN    ; BACK TO MAIN
+                        
+                                ; DELAY LOOP
+   8056   d0            RET_DELAY: SEP  R0      ; SET PROGRAM COUNTER BACK TO R0, EXITING
+   8057   f8 01         DELAY:  LDI     1       ; LOAD 1 TO ACCUMULATOR
+   8059   a7                    PLO     R7      ; PLACE 1 INTO R7
+   805a   27            DELAY1: DEC     R7      ; DECREMENT R7
+   805b   87                    GLO     R7      ; LOAD R7 TO ACCUMULATOR
+   805c   3a 5a                 BNZ     DELAY1  ; IF NOT YET ZERO, RE-RUN LOOP
+   805e   30 56                 BR      RET_DELAY   ; EXIT SUBROUTINE
+                        
+                        
+   8060   bd            BUFFER5:     DB 0BDH    ; ONES
+   8061   bd            BUFFER4:     DB 0BDH    ; TENS
+   8062   bd            BUFFER3:     DB 0BDH
+   8063   bd            BUFFER2:     DB 0BDH
+   8064   bd            BUFFER1:     DB 0BDH
+   8065   bd            BUFFER0:     DB 0BDH
+   8066   20 10 08 04   SCAN_DIGIT: DB 20H, 10H, 8, 4, 2, 1 ; HEX VALUE TO ENERGIZE EACH DIGIT
+   806a   02 01         
+                        
+                        ; CODES TO DISPLAY EACH DIGIT
+   806c   bd            VALUE0:     DB 0BDH ; CODE FOR VALUE 0
+   806d   30            VALUE1:     DB 030H ; CODE FOR VALUE 1
+   806e   9b            VALUE2:     DB 09BH ; CODE FOR VALUE 2
+   806f   ba            VALUE3:     DB 0BAH ; CODE FOR VALUE 3
+   8070   36            VALUE4:     DB 036H ; CODE FOR VALUE 4
+   8071   ae            VALUE5:     DB 0AEH ; CODE FOR VALUE 5
+   8072   af            VALUE6:     DB 0AFH ; CODE FOR VALUE 6
+   8073   38            VALUE7:     DB 038H ; CODE FOR VALUE 7
+   8074   bf            VALUE8:     DB 0BFH ; CODE FOR VALUE 8
+   8075   3e            VALUE9:     DB 03EH ; CODE FOR VALUE 9
+                        
+                        
+   8076   31 a2         COUNT:  BQ      CHKEF   ; IF Q IS ON, CHECK EF INPUTS
+   8078   3c 8d         UP:     BN1     ZERO    ; INCREMENT AND STORE COUNTER
+   807a   0c                    LDN     RC      ; LOAD THE ONES
+   807b   ed                    SEX     RD      ; SET THE INDEX REGISTER TO TENS
+   807c   f4                    ADD             ; ADD THEM TOGETHER
+   807d   fb 12                 XRI     12H     ; SEE IF THEY EQUAL 12H (9 and 9)
+   807f   32 3b                 BZ      CONT    ; IF NOT, THEN CONTINUE
+   8081   f8 01                 LDI     01H     ; RELOAD 1 WITH ACCUMULATOR
+   8083   7b                    SEQ             ; TURN ON Q OUTPUT
+   8084   ec                    SEX     RC      ; SET INDEX REGISTER TO rc
+   8085   f4                    ADD             ; INCREMENT COUNTER
+   8086   5c                    STR     RC      ; STORE VALUE BACK TO ONES
+   8087   fb 0a                 XRI     0AH     ; SEE IF IT'S REACHED A YET
+   8089   32 98                 BZ      ITENS   ; TIME TO INCREMENT TENS
+   808b   30 a9                 BR      UPDB    ; UPDATE DISPLAYS
+                        
+   808d   3d 3b         ZERO:   BN2     CONT    ; IF 2 NOT PRESSED, CONTINUE
+   808f   f8 00                 LDI     00H     ; ZERO ACCUMULATOR
+   8091   5c                    STR     RC      ; ZERO ONES
+   8092   5d                    STR     RD      ; ZERO TENS
+   8093   5e                    STR     RE      ; CLEAR RE
+   8094   5f                    STR     RF      ; CLEAR RF
+   8095   7b                    SEQ             ; TURN ON Q OUTPUT
+   8096   30 a9                 BR      UPDB    ; UPDATE THE DISPLAY
+                        
+   8098   f8 00         ITENS:  LDI     0H      ; RELOAD 0 TO ACCUMULATOR
+   809a   5c                    STR     RC      ; ONES NOW CONTAIN A ZERO
+   809b   ed                    SEX     RD      ; SET INDEX REGSTER TO TENS
+   809c   f8 01                 LDI     01H     ; LOAD A 1 TO ACCUMULATOR
+   809e   f4                    ADD             ; ADD 1 TO TENS
+   809f   5d                    STR     RD      ; STORE BACK TO TENS
+   80a0   30 a9                 BR      UPDB    ; UPDATE DISPLAYS
+                        
+                        
+                        
+   80a2   34 3b         CHKEF:  B1      CONT    ; IF EF1 IS PRESSED, CONTINUE
+   80a4   35 3b                 B2      CONT    ; IF EF2 IS PRESSED, CONTINUE
+   80a6   7a                    REQ             ; OTHERWISE RESET Q
+   80a7   30 3b                 BR      CONT    ; THEN CONTINUE
+                        
+                        
+   80a9                 UPDB:   
+   80a9   0d                    LDN     RD          ; TENS GET LOADED TO ACCUMULATOR
+   80aa   fe                    SHL                 ; SHIFT LEFT 4 SPACES
+   80ab   fe                    SHL                 ; TO CONVER TO BCD
+   80ac   fe                    SHL
+   80ad   fe                    SHL
+   80ae   ec                    SEX     RC          ; SET X REGISTER TO RC              
+   80af   f1                    OR
+   80b0   52                    STR     R2          ; SEND TO LED'S
+                                
+   80b1   f8 80 b9 f8           LOAD    R9, VALUE0  ; START R9 AT VALUE ZERO
+   80b5   6c a9         
+   80b7   ec                    SEX     RC          ; SET INDEX REGISTER TO ONES
+   80b8   89                    GLO     R9          ; GET THE STARTING VALUE LOCATION (CODE)
+   80b9   f4                    ADD                 ; ADD THEM TOGETHER
+   80ba   a9                    PLO     R9          ; R9 NOW SET TO WHERE WE NEED DATA FOR ONES
+   80bb   f8 80 b6 f8           LOAD    R6, BUFFER0 ; R6 BECOMES ONES
+   80bf   65 a6         
+   80c1   09                    LDN     R9          ; LOAD THE CORRECT CODE FOR DIGIT
+   80c2   56                    STR     R6          ; STORE THIS CODE TO BUFFER
+   80c3   f8 80 b9 f8   UTENS:  LOAD    R9, VALUE0  ; RELOAD R9 WITH STARTING VALUE
+   80c7   6c a9         
+   80c9   ed                    SEX     RD          ; SET INDEX REGISTER TO TENS COUNTER
+   80ca   89                    GLO     R9          ; GET THE LOW BYTE OF R9
+   80cb   f4                    ADD                 ; ADD THE TENS DIGIT
+   80cc   a9                    PLO     R9          ;R9 NOW SET TO WHERE WE NEED DATA FOR TENS
+   80cd   f8 80 b6 f8           LOAD    R6, BUFFER1 ; LOAD R6 WITH TENS MEMORY LOCATION
+   80d1   64 a6         
+   80d3   09                    LDN     R9          ; LOAD ACCUMULATOR WITH DATA
+   80d4   56                    STR     R6          ; DISPLAY THIS CODE
+   80d5   30 3b                 BR      CONT        ; CONTINUE
+   80d7                         END
+2756  BREAK         8065  BUFFER0       8064  BUFFER1       8063  BUFFER2   
+8062  BUFFER3       8061  BUFFER4       8060  BUFFER5       80a2  CHKEF     
+803b  CONT          8076  COUNT         8057  DELAY         805a  DELAY1    
+7101  DIGIT         7000  GPIO1         8000  INIT          8098  ITENS     
+8044  LOOP          802d  MAIN          8100  ONES          0000  R0        
+0001  R1            0002  R2            0003  R3            0004  R4        
+0005  R5            0006  R6            0007  R7            0008  R8        
+0009  R9            000a  RA            000b  RB            000c  RC        
+000d  RD            000e  RE            8056  RET_DELAY     000f  RF        
+8066  SCAN_DIGIT    7102  SEGMENT       8101  TENS          8078  UP        
+80a9  UPDB          80c3  UTENS         806c  VALUE0        806d  VALUE1    
+806e  VALUE2        806f  VALUE3        8070  VALUE4        8071  VALUE5    
+8072  VALUE6        8073  VALUE7        8074  VALUE8        8075  VALUE9    
+808d  ZERO          
+
